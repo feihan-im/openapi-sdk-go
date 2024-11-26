@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bytedance/sonic"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -117,7 +116,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		} else if b, ok := req.Body.([]byte); ok {
 			body = bytes.NewBuffer(b)
 		} else {
-			b, err := sonic.Marshal(req.Body)
+			b, err := JsonMarshal(req.Body)
 			if err != nil {
 				return nil, &ApiError{Code: -1, Msg: err.Error()}
 			}
@@ -193,7 +192,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, *ApiError) {
 				signature := hex.EncodeToString(s.Sum(nil))
 
 				url := c.config.BackendUrl + defaultTokenPath
-				body, _ := sonic.Marshal(map[string]interface{}{
+				body, _ := JsonMarshal(map[string]interface{}{
 					"app_id":            c.config.AppId,
 					"signature_version": "v1",
 					"signature":         signature,
@@ -228,7 +227,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, *ApiError) {
 						AppAccessTokenExpiresIn int    `json:"app_access_token_expires_in"`
 					} `json:"data,omitempty"`
 				}
-				err = sonic.Unmarshal(b, &resp)
+				err = JsonUnmarshal(b, &resp)
 				if err != nil {
 					return &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -283,7 +282,7 @@ func (e *ApiResponse) JSON(value interface{}) *ApiError {
 		Data  interface{} `json:"data,omitempty"`
 	}
 	data.Data = value
-	err = sonic.Unmarshal(b, &data)
+	err = JsonUnmarshal(b, &data)
 	if err != nil {
 		return &ApiError{Code: -1, Msg: err.Error()}
 	}

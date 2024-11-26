@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	fhsdk "github.com/feihan-im/openapi-sdk-go"
+	fhcore "github.com/feihan-im/openapi-sdk-go/core"
 	fhim "github.com/feihan-im/openapi-sdk-go/service/im/v1"
 )
 
@@ -19,5 +20,5 @@ func TestImMessageSend(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	print(resp)
+	print(fhcore.Pretty(resp))
 }
