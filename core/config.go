@@ -5,8 +5,9 @@ type Config struct {
 	AppSecret  string
 	BackendUrl string
 
-	HttpClient HttpClient
-	ApiClient  ApiClient
+	EnableEncryption bool
+	HttpClient       HttpClient
+	ApiClient        ApiClient
 
 	Logger Logger
 }

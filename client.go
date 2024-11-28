@@ -1,6 +1,8 @@
 package fhsdk
 
 import (
+	"strings"
+
 	fhcore "github.com/feihan-im/openapi-sdk-go/core"
 	fhserviceim "github.com/feihan-im/openapi-sdk-go/service/im"
 )
@@ -15,7 +17,8 @@ type Client struct {
 func NewClient(backendUrl string, appId string, appSecret string, options ...clientOptionFunc) *Client {
 	// init option
 	option := &clientOption{
-		logLevel: fhcore.LoggerLevelInfo,
+		logLevel:         fhcore.LoggerLevelInfo,
+		enableEncryption: true,
 	}
 	for _, fn := range options {
 		fn(option)
@@ -23,11 +26,12 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 
 	// init config
 	config := &fhcore.Config{
-		AppId:      appId,
-		AppSecret:  appSecret,
-		BackendUrl: backendUrl,
-		HttpClient: option.httpClient,
-		Logger:     option.logger,
+		AppId:            appId,
+		AppSecret:        appSecret,
+		BackendUrl:       strings.TrimSpace(strings.TrimSuffix(backendUrl, "/")),
+		EnableEncryption: option.enableEncryption,
+		HttpClient:       option.httpClient,
+		Logger:           option.logger,
 	}
 	if config.Logger == nil {
 		config.Logger = fhcore.NewDefaultLogger(option.logLevel)

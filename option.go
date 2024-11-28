@@ -7,8 +7,9 @@ import (
 )
 
 type clientOption struct {
-	httpClient     fhcore.HttpClient
-	requestTimeout time.Duration
+	httpClient       fhcore.HttpClient
+	requestTimeout   time.Duration
+	enableEncryption bool
 
 	logLevel fhcore.LoggerLevel
 	logger   fhcore.Logger
@@ -25,6 +26,12 @@ func WithHttpClient(httpClient fhcore.HttpClient) clientOptionFunc {
 func WithRequestTimeout(requestTimeout time.Duration) clientOptionFunc {
 	return func(option *clientOption) {
 		option.requestTimeout = requestTimeout
+	}
+}
+
+func WithEnableEncryption(enableEncryption bool) clientOptionFunc {
+	return func(option *clientOption) {
+		option.enableEncryption = enableEncryption
 	}
 }
 
