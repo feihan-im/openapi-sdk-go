@@ -11,10 +11,13 @@ import (
 	"net/http"
 	urlLib "net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
+)
 
-	"golang.org/x/sync/singleflight"
+const (
+	defaultTokenPath = "/oapi/auth/v1/app/token"
 )
 
 type ApiClient interface {
@@ -47,15 +50,11 @@ func (e *ApiError) Error() string {
 	return fmt.Sprintf("ApiError[code=%d, logId=%s, msg=%s]", e.Code, e.LogId, e.Msg)
 }
 
-const (
-	defaultTokenPath = "/oapi/auth/v1/app/token"
-)
-
 type defaultApiClient struct {
 	config         *Config
 	token          atomic.Value
 	tokenExpiresAt atomic.Value
-	tokenSingle    singleflight.Group
+	tokenMu        sync.Mutex
 }
 
 func NewDefaultApiClient(config *Config) ApiClient {
@@ -173,87 +172,88 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, *ApiError) {
 	}
 
 	if loadTokenExpiresAt().Before(time.Now()) {
-		_, err, _ := c.tokenSingle.Do("getToken", func() (interface{}, error) {
-			f := func() error {
-				ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-				defer cancel()
+		f := func() error {
+			c.tokenMu.Lock()
+			defer c.tokenMu.Unlock()
 
-				timestamp := time.Now().UnixMilli()
-				nonce := rand.Int64N(1e12)
-
-				s := sha256.New()
-				_, _ = s.Write([]byte(fmt.Sprintf(
-					"%s:%d:%s:%d",
-					c.config.AppId,
-					timestamp,
-					c.config.AppSecret,
-					nonce,
-				)))
-				signature := hex.EncodeToString(s.Sum(nil))
-
-				url := c.config.BackendUrl + defaultTokenPath
-				body, _ := JsonMarshal(map[string]interface{}{
-					"app_id":            c.config.AppId,
-					"signature_version": "v1",
-					"signature":         signature,
-					"timestamp":         timestamp,
-					"nonce":             nonce,
-				})
-
-				httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-				if err != nil {
-					return &ApiError{Code: -1, Msg: err.Error()}
-				}
-
-				httpReq.Header.Add("Content-Type", "application/json")
-				httpReq.Header.Add("User-Agent", UserAgent)
-
-				httpResp, err := c.config.HttpClient.Do(httpReq)
-				if err != nil {
-					return &ApiError{Code: -1, Msg: err.Error()}
-				}
-
-				defer httpResp.Body.Close()
-				b, err := io.ReadAll(httpResp.Body)
-				if err != nil {
-					return &ApiError{Code: -1, Msg: err.Error()}
-				}
-				var resp struct {
-					Code  int    `json:"code"`
-					Msg   string `json:"msg"`
-					LogId string `json:"log_id"`
-					Data  *struct {
-						AppAccessToken          string `json:"app_access_token"`
-						AppAccessTokenExpiresIn int    `json:"app_access_token_expires_in"`
-					} `json:"data,omitempty"`
-				}
-				err = JsonUnmarshal(b, &resp)
-				if err != nil {
-					return &ApiError{Code: -1, Msg: err.Error()}
-				}
-				if resp.Code != 0 {
-					return &ApiError{
-						Code:  resp.Code,
-						Msg:   resp.Msg,
-						LogId: resp.LogId,
-					}
-				}
-				c.token.Store(resp.Data.AppAccessToken)
-				c.tokenExpiresAt.Store(
-					time.Now().
-						Add(time.Second * time.Duration(resp.Data.AppAccessTokenExpiresIn)).
-						Add(time.Minute * -5),
-				)
-
+			if loadTokenExpiresAt().After(time.Now()) {
 				return nil
 			}
-			if err := f(); err != nil {
-				c.tokenExpiresAt.Store(time.Now().Add(time.Minute * 5))
-				return nil, err
+
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			timestamp := time.Now().UnixMilli()
+			nonce := rand.Int64N(1e12)
+
+			s := sha256.New()
+			_, _ = s.Write([]byte(fmt.Sprintf(
+				"%s:%d:%s:%d",
+				c.config.AppId,
+				timestamp,
+				c.config.AppSecret,
+				nonce,
+			)))
+			signature := hex.EncodeToString(s.Sum(nil))
+
+			url := c.config.BackendUrl + defaultTokenPath
+			body, _ := JsonMarshal(map[string]interface{}{
+				"app_id":            c.config.AppId,
+				"signature_version": "v1",
+				"signature":         signature,
+				"timestamp":         timestamp,
+				"nonce":             nonce,
+			})
+
+			httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+			if err != nil {
+				return &ApiError{Code: -1, Msg: err.Error()}
 			}
-			return "", nil
-		})
-		if err != nil {
+
+			httpReq.Header.Add("Content-Type", "application/json")
+			httpReq.Header.Add("User-Agent", UserAgent)
+
+			httpResp, err := c.config.HttpClient.Do(httpReq)
+			if err != nil {
+				return &ApiError{Code: -1, Msg: err.Error()}
+			}
+
+			defer httpResp.Body.Close()
+			b, err := io.ReadAll(httpResp.Body)
+			if err != nil {
+				return &ApiError{Code: -1, Msg: err.Error()}
+			}
+			var resp struct {
+				Code  int    `json:"code"`
+				Msg   string `json:"msg"`
+				LogId string `json:"log_id"`
+				Data  *struct {
+					AppAccessToken          string `json:"app_access_token"`
+					AppAccessTokenExpiresIn int    `json:"app_access_token_expires_in"`
+				} `json:"data,omitempty"`
+			}
+			err = JsonUnmarshal(b, &resp)
+			if err != nil {
+				return &ApiError{Code: -1, Msg: err.Error()}
+			}
+			if resp.Code != 0 {
+				return &ApiError{
+					Code:  resp.Code,
+					Msg:   resp.Msg,
+					LogId: resp.LogId,
+				}
+			}
+			c.token.Store(resp.Data.AppAccessToken)
+			c.tokenExpiresAt.Store(
+				time.Now().
+					Add(time.Second * time.Duration(resp.Data.AppAccessTokenExpiresIn)).
+					Add(time.Minute * -5),
+			)
+
+			return nil
+		}
+		if err := f(); err != nil {
+			c.tokenExpiresAt.Store(time.Now().Add(time.Minute * 5))
 			if v, ok := err.(*ApiError); ok {
 				return "", v
 			}
