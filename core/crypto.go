@@ -6,16 +6,16 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/feihan-im/openapi-sdk-go/internal/model"
 )
 
 func encryptMessage(secret string, data []byte) (*model.SecureMessage, error) {
-	timestamp := uint64(time.Now().UnixMilli())
+	timestamp := getCurrentTimestamp()
 	nonce := randomAlphaNumString(16)
 	initKey := sha256.Sum256([]byte(fmt.Sprintf(
 		"%d:%s:%s",
@@ -119,6 +119,12 @@ func pkcs7Unpad(b []byte) []byte {
 }
 
 const alphaNumLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func randIntn(n int) int {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return int(binary.BigEndian.Uint64(b) % uint64(n))
+}
 
 func randomBytes(size int) []byte {
 	b := make([]byte, size)

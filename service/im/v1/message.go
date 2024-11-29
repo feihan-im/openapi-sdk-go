@@ -22,6 +22,7 @@ func (v1 *v1Message) SendMessage(ctx context.Context, req *SendMessageReq) (*Sen
 		Path:               "/oapi/im/v1/messages",
 		Body:               req,
 		WithAppAccessToken: true,
+		WithWebsocket:      true,
 	})
 	if err != nil {
 		return nil, err

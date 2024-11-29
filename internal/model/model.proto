@@ -28,10 +28,20 @@ message HttpResponse {
 
 message WebSocketMessage {
     oneof content {
-        bytes event = 1;
-        EventAck event_ack = 2;
-        HttpRequest http_request = 3;
-        HttpResponse http_response = 4;
+        uint64 ping_pong = 1;
+        InitRequest init_request = 2;
+        InitResponse init_response = 3;
+        bytes event = 4;
+        EventAck event_ack = 5;
+        HttpRequest http_request = 6;
+        HttpResponse http_response = 7;
+    }
+
+    message InitRequest {
+        string user_agent = 1;
+    }
+
+    message InitResponse {
     }
 
     message EventAck {

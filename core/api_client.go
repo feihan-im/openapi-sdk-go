@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"math/rand/v2"
 	"net/http"
 	urlLib "net/url"
 	"strconv"
@@ -21,7 +20,10 @@ import (
 )
 
 type ApiClient interface {
-	Request(ctx context.Context, req *ApiRequest) (*ApiResponse, *ApiError)
+	Preheat(ctx context.Context) error
+	Request(ctx context.Context, req *ApiRequest) (*ApiResponse, error)
+	OnEvent(ctx context.Context, options *OnEventOptions)
+	Close() error
 }
 
 type ApiRequest struct {
@@ -33,11 +35,11 @@ type ApiRequest struct {
 	Body               interface{}       `json:"body,omitempty"`
 	Stream             io.Reader         `json:"stream,omitempty"`
 	WithAppAccessToken bool              `json:"with_app_access_token,omitempty"`
+	WithWebsocket      bool              `json:"with_websocket,omitempty"`
 }
 
 type ApiResponse struct {
-	httpResponse    *http.Response
-	encryptedSecret string
+	GetBody func() ([]byte, error)
 }
 
 type ApiError struct {
@@ -54,24 +56,60 @@ func (e *ApiError) Error() string {
 type defaultApiClient struct {
 	config         *Config
 	secret         string
-	token          atomic.Value
-	tokenExpiresAt atomic.Value
-	tokenMu        sync.Mutex
+	token          string
+	tokenExpiresAt uint64
+	tokenFetching  uint64
+	tokenMu        sync.RWMutex
+	pingCalled     bool
+	pingExpiresAt  time.Time
+	pingFetching   uint64
+	pingMu         sync.RWMutex
+	ws             *defaultWsClient
 }
 
 func NewDefaultApiClient(config *Config) ApiClient {
-	secret := sha256.Sum256([]byte(fmt.Sprintf(
+	secretBytes := sha256.Sum256([]byte(fmt.Sprintf(
 		"%s:%s",
 		config.AppId,
 		config.AppSecret,
 	)))
-	return &defaultApiClient{
+	secret := hex.EncodeToString(secretBytes[:])
+	c := &defaultApiClient{
 		config: config,
-		secret: hex.EncodeToString(secret[:]),
+		secret: secret,
 	}
+	c.ws = newDefaultWsClient(&defaultWsClientOptions{
+		config:     config,
+		secret:     secret,
+		getToken:   c.getToken,
+		ensurePing: c.ensurePing,
+	})
+	return c
 }
 
-func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiResponse, *ApiError) {
+func (c *defaultApiClient) Preheat(ctx context.Context) error {
+	err := c.ensurePing(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = c.getToken(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *defaultApiClient) Close() error {
+	return c.ws.Close()
+}
+
+func (c *defaultApiClient) OnEvent(ctx context.Context, options *OnEventOptions) {
+	c.ws.OnEvent(ctx, options)
+}
+
+func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiResponse, error) {
+	c.ensurePing(ctx)
+
 	var url string
 
 	// build url
@@ -140,17 +178,31 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 
 		// build new body
 		{
-			req := &model.HttpRequest{
+			httpReq := &model.HttpRequest{
 				Method:  req.Method,
 				Path:    url[len(c.config.BackendUrl):],
 				Headers: req.HeaderParams,
 				Body:    body,
 			}
-			reqBody, err := proto.Marshal(req)
+
+			// send by websocket
+			if req.WithWebsocket {
+				httpResp, err := c.ws.HttpRequest(ctx, httpReq)
+				if err != nil {
+					return nil, err
+				}
+				return &ApiResponse{
+					GetBody: func() ([]byte, error) {
+						return httpResp.Body, nil
+					},
+				}, nil
+			}
+
+			httpReqBody, err := proto.Marshal(httpReq)
 			if err != nil {
 				return nil, &ApiError{Code: -1, Msg: err.Error()}
 			}
-			secureMessage, err := encryptMessage(c.secret, reqBody)
+			secureMessage, err := encryptMessage(c.secret, httpReqBody)
 			if err != nil {
 				return nil, &ApiError{Code: -1, Msg: err.Error()}
 			}
@@ -165,13 +217,11 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 
 		// build header
 		httpReq.Header.Add("User-Agent", UserAgent)
-		{
-			token, err := c.getToken(ctx)
-			if err != nil {
-				return nil, err
-			}
-			httpReq.Header.Add("Authorization", "Bearer "+token)
+		token, err := c.getToken(ctx)
+		if err != nil {
+			return nil, err
 		}
+		httpReq.Header.Add("Authorization", "Bearer "+token)
 
 		// request
 		httpResp, err := c.config.HttpClient.Do(httpReq)
@@ -180,8 +230,29 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		return &ApiResponse{
-			httpResponse:    httpResp,
-			encryptedSecret: c.secret,
+			GetBody: func() ([]byte, error) {
+				defer httpResp.Body.Close()
+				body, err := io.ReadAll(httpResp.Body)
+				if err != nil {
+					return nil, &ApiError{Code: -1, Msg: err.Error()}
+				}
+				// decrypt
+				var secureMessage model.SecureMessage
+				err = proto.Unmarshal(body, &secureMessage)
+				if err != nil {
+					return nil, &ApiError{Code: -1, Msg: err.Error()}
+				}
+				data, err := decryptMessage(c.secret, &secureMessage)
+				if err != nil {
+					return nil, &ApiError{Code: -1, Msg: err.Error()}
+				}
+				var httpResponse model.HttpResponse
+				err = proto.Unmarshal(data, &httpResponse)
+				if err != nil {
+					return nil, &ApiError{Code: -1, Msg: err.Error()}
+				}
+				return httpResponse.Body, nil
+			},
 		}, nil
 	} else {
 		// no encryption
@@ -211,7 +282,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		// build header
 		httpReq.Header.Add("Content-Type", "application/json")
 		httpReq.Header.Add("User-Agent", UserAgent)
-		httpReq.Header.Add("X-Feihan-Timestamp", strconv.FormatInt(time.Now().UnixMilli(), 10))
+		httpReq.Header.Add("X-Feihan-Timestamp", strconv.FormatUint(getCurrentTimestamp(), 10))
 		httpReq.Header.Add("X-Feihan-Nonce", randomAlphaNumString(16))
 
 		if req.WithAppAccessToken {
@@ -233,149 +304,22 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		return &ApiResponse{
-			httpResponse: httpResp,
+			GetBody: func() ([]byte, error) {
+				defer httpResp.Body.Close()
+				body, err := io.ReadAll(httpResp.Body)
+				if err != nil {
+					return nil, &ApiError{Code: -1, Msg: err.Error()}
+				}
+				return body, nil
+			},
 		}, nil
 	}
 }
 
-func (c *defaultApiClient) getToken(ctx context.Context) (string, *ApiError) {
-	loadTokenExpiresAt := func() time.Time {
-		v := c.tokenExpiresAt.Load()
-		if v == nil {
-			return time.Time{}
-		}
-		return v.(time.Time)
-	}
-
-	loadToken := func() string {
-		v := c.token.Load()
-		if v == nil {
-			return ""
-		}
-		return v.(string)
-	}
-
-	if loadTokenExpiresAt().Before(time.Now()) {
-		f := func() error {
-			c.tokenMu.Lock()
-			defer c.tokenMu.Unlock()
-
-			if loadTokenExpiresAt().After(time.Now()) {
-				return nil
-			}
-
-			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-			defer cancel()
-
-			timestamp := time.Now().UnixMilli()
-			nonce := rand.Int64N(1e12)
-
-			s := sha256.New()
-			_, _ = s.Write([]byte(fmt.Sprintf(
-				"%s:%d:%s:%d",
-				c.config.AppId,
-				timestamp,
-				c.config.AppSecret,
-				nonce,
-			)))
-			signature := hex.EncodeToString(s.Sum(nil))
-
-			url := c.config.BackendUrl + defaultTokenPath
-			body, _ := JsonMarshal(map[string]interface{}{
-				"app_id":            c.config.AppId,
-				"signature_version": "v1",
-				"signature":         signature,
-				"timestamp":         timestamp,
-				"nonce":             nonce,
-			})
-
-			httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-			if err != nil {
-				return &ApiError{Code: -1, Msg: err.Error()}
-			}
-
-			httpReq.Header.Add("Content-Type", "application/json")
-			httpReq.Header.Add("User-Agent", UserAgent)
-
-			httpResp, err := c.config.HttpClient.Do(httpReq)
-			if err != nil {
-				return &ApiError{Code: -1, Msg: err.Error()}
-			}
-
-			defer httpResp.Body.Close()
-			b, err := io.ReadAll(httpResp.Body)
-			if err != nil {
-				return &ApiError{Code: -1, Msg: err.Error()}
-			}
-			var resp struct {
-				Code  int    `json:"code"`
-				Msg   string `json:"msg"`
-				LogId string `json:"log_id"`
-				Data  *struct {
-					AppAccessToken          string `json:"app_access_token"`
-					AppAccessTokenExpiresIn int    `json:"app_access_token_expires_in"`
-				} `json:"data,omitempty"`
-			}
-			err = JsonUnmarshal(b, &resp)
-			if err != nil {
-				return &ApiError{Code: -1, Msg: err.Error()}
-			}
-			if resp.Code != 0 {
-				return &ApiError{
-					Code:  resp.Code,
-					Msg:   resp.Msg,
-					LogId: resp.LogId,
-				}
-			}
-			c.token.Store(resp.Data.AppAccessToken)
-			c.tokenExpiresAt.Store(
-				time.Now().
-					Add(time.Second * time.Duration(resp.Data.AppAccessTokenExpiresIn)).
-					Add(time.Minute * -5),
-			)
-
-			return nil
-		}
-		if err := f(); err != nil {
-			c.tokenExpiresAt.Store(time.Now().Add(time.Minute * 5))
-			if v, ok := err.(*ApiError); ok {
-				return "", v
-			}
-			return "", &ApiError{Code: -1, Msg: err.Error()}
-		}
-	}
-
-	token := loadToken()
-	if len(token) == 0 {
-		return "", &ApiError{Code: -1, Msg: "get token failed"}
-	}
-
-	return token, nil
-}
-
-func (e *ApiResponse) JSON(value interface{}) *ApiError {
-	defer e.httpResponse.Body.Close()
-	body, err := io.ReadAll(e.httpResponse.Body)
+func (e *ApiResponse) JSON(value interface{}) error {
+	body, err := e.GetBody()
 	if err != nil {
-		return &ApiError{Code: -1, Msg: err.Error()}
-	}
-	// decrypt
-	if len(e.encryptedSecret) > 0 {
-		var secureMessage model.SecureMessage
-		err = proto.Unmarshal(body, &secureMessage)
-		if err != nil {
-			return &ApiError{Code: -1, Msg: err.Error()}
-		}
-		data, err := decryptMessage(e.encryptedSecret, &secureMessage)
-		if err != nil {
-			return &ApiError{Code: -1, Msg: err.Error()}
-		}
-		var httpResponse model.HttpResponse
-		err = proto.Unmarshal(data, &httpResponse)
-		if err != nil {
-			return &ApiError{Code: -1, Msg: err.Error()}
-		}
-		body = httpResponse.Body
+		return err
 	}
 	var data struct {
 		Code  int         `json:"code"`
@@ -397,4 +341,230 @@ func (e *ApiResponse) JSON(value interface{}) *ApiError {
 		}
 	}
 	return nil
+}
+
+type tokenResp struct {
+	Code  int    `json:"code"`
+	Msg   string `json:"msg"`
+	LogId string `json:"log_id"`
+	Data  *struct {
+		AppAccessToken          string `json:"app_access_token"`
+		AppAccessTokenExpiresIn int    `json:"app_access_token_expires_in"`
+	} `json:"data,omitempty"`
+}
+
+func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
+	c.tokenMu.RLock()
+	token := c.token
+	tokenExpiresAt := c.tokenExpiresAt
+	c.tokenMu.RUnlock()
+
+	if tokenExpiresAt > getCurrentTimestamp() {
+		return token, nil
+	}
+
+	callFetchToken := func(lock bool) {
+		resp, err := c.fetchToken(ctx)
+		if err != nil {
+			c.config.Logger.Errorf(ctx, "Get token error: %s", err.Error())
+		} else {
+			if lock {
+				c.tokenMu.Lock()
+			}
+			c.token = resp.Data.AppAccessToken
+			c.tokenExpiresAt =
+				getCurrentTimestamp() + uint64(resp.Data.AppAccessTokenExpiresIn*1000) - 5*60*1000
+			if lock {
+				c.tokenMu.Unlock()
+			}
+			c.config.Logger.Infof(ctx, "Get token successfully: token_expires_in=%d", resp.Data.AppAccessTokenExpiresIn)
+		}
+	}
+
+	if len(token) == 0 {
+		c.tokenMu.Lock()
+		token = c.token
+		if len(token) == 0 {
+			callFetchToken(false)
+		}
+		token = c.token
+		c.tokenMu.Unlock()
+	} else {
+		if atomic.CompareAndSwapUint64(&c.tokenFetching, 0, 1) {
+			go func() {
+				callFetchToken(true)
+				atomic.StoreUint64(&c.tokenFetching, 0)
+			}()
+		}
+	}
+
+	if len(token) == 0 {
+		return "", &ApiError{Code: -1, Msg: "Get token failed"}
+	}
+
+	return token, nil
+}
+
+func (c *defaultApiClient) fetchToken(ctx context.Context) (*tokenResp, error) {
+	timestamp := getCurrentTimestamp()
+	nonce := randIntn(1e12)
+
+	s := sha256.New()
+	_, _ = s.Write([]byte(fmt.Sprintf(
+		"%s:%d:%s:%d",
+		c.config.AppId,
+		timestamp,
+		c.config.AppSecret,
+		nonce,
+	)))
+	signature := hex.EncodeToString(s.Sum(nil))
+
+	url := c.config.BackendUrl + defaultTokenPath
+	body, _ := JsonMarshal(map[string]interface{}{
+		"app_id":            c.config.AppId,
+		"signature_version": "v1",
+		"signature":         signature,
+		"timestamp":         timestamp,
+		"nonce":             nonce,
+	})
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	httpReq.Header.Add("Content-Type", "application/json")
+	httpReq.Header.Add("User-Agent", UserAgent)
+
+	httpResp, err := c.config.HttpClient.Do(httpReq)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	defer httpResp.Body.Close()
+	b, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	var resp tokenResp
+	err = JsonUnmarshal(b, &resp)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+	if resp.Code != 0 {
+		return nil, &ApiError{
+			Code:  resp.Code,
+			Msg:   resp.Msg,
+			LogId: resp.LogId,
+		}
+	}
+
+	return &resp, nil
+}
+
+type pingResp struct {
+	Code  int    `json:"code"`
+	Msg   string `json:"msg"`
+	LogId string `json:"log_id"`
+	Data  *struct {
+		Version   string `json:"version"`
+		Timestamp int64  `json:"timestamp"`
+		OrgCode   string `json:"org_code"`
+	} `json:"data,omitempty"`
+}
+
+func (c *defaultApiClient) ensurePing(ctx context.Context) error {
+	c.pingMu.RLock()
+	pingCalled := c.pingCalled
+	pingExpiresAt := c.pingExpiresAt
+	c.pingMu.RUnlock()
+
+	if pingExpiresAt.After(time.Now()) {
+		return nil
+	}
+
+	callFetchPing := func(lock bool) {
+		resp, err := c.fetchPing(ctx)
+		if err != nil {
+			c.config.Logger.Errorf(ctx, "Ping server error: %s", err.Error())
+		} else {
+			if lock {
+				c.pingMu.Lock()
+			}
+			c.pingCalled = true
+			c.pingExpiresAt = time.Now().Add(time.Hour)
+			if lock {
+				c.pingMu.Unlock()
+			}
+			setServerTimeBase(uint64(resp.Data.Timestamp))
+			c.config.Logger.Infof(
+				ctx,
+				"Ping server successfully: org_code=%s, server_version=%s, server_time=%s",
+				resp.Data.OrgCode,
+				resp.Data.Version,
+				time.Unix(resp.Data.Timestamp/1000, resp.Data.Timestamp%1000).Format(time.RFC3339),
+			)
+		}
+	}
+
+	if !pingCalled {
+		c.pingMu.Lock()
+		pingCalled = c.pingCalled
+		if !pingCalled {
+			callFetchPing(false)
+		}
+		pingCalled = c.pingCalled
+		c.pingMu.Unlock()
+	} else {
+		if atomic.CompareAndSwapUint64(&c.pingFetching, 0, 1) {
+			go func() {
+				callFetchPing(true)
+				atomic.StoreUint64(&c.tokenFetching, 0)
+			}()
+		}
+	}
+
+	if !pingCalled {
+		return &ApiError{Code: -1, Msg: "Ping server failed"}
+	}
+
+	return nil
+}
+
+func (c *defaultApiClient) fetchPing(ctx context.Context) (*pingResp, error) {
+	url := c.config.BackendUrl + defaultPingPath
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	httpReq.Header.Add("Content-Type", "application/json")
+	httpReq.Header.Add("User-Agent", UserAgent)
+
+	httpResp, err := c.config.HttpClient.Do(httpReq)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	defer httpResp.Body.Close()
+	b, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+
+	var resp pingResp
+	err = JsonUnmarshal(b, &resp)
+	if err != nil {
+		return nil, &ApiError{Code: -1, Msg: err.Error()}
+	}
+	if resp.Code != 0 {
+		return nil, &ApiError{
+			Code:  resp.Code,
+			Msg:   resp.Msg,
+			LogId: resp.LogId,
+		}
+	}
+
+	return &resp, nil
 }

@@ -25,7 +25,9 @@ func WithHttpClient(httpClient fhcore.HttpClient) clientOptionFunc {
 
 func WithRequestTimeout(requestTimeout time.Duration) clientOptionFunc {
 	return func(option *clientOption) {
-		option.requestTimeout = requestTimeout
+		if requestTimeout > 0 {
+			option.requestTimeout = requestTimeout
+		}
 	}
 }
 

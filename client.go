@@ -1,7 +1,9 @@
 package fhsdk
 
 import (
+	"context"
 	"strings"
+	"time"
 
 	fhcore "github.com/feihan-im/openapi-sdk-go/core"
 	fhserviceim "github.com/feihan-im/openapi-sdk-go/service/im"
@@ -13,11 +15,12 @@ type Client struct {
 	Im        *fhserviceim.Service
 }
 
-// NewClient creates a client
+// Creates a client
 func NewClient(backendUrl string, appId string, appSecret string, options ...clientOptionFunc) *Client {
 	// init option
 	option := &clientOption{
 		logLevel:         fhcore.LoggerLevelInfo,
+		requestTimeout:   1 * time.Minute,
 		enableEncryption: true,
 	}
 	for _, fn := range options {
@@ -29,8 +32,9 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 		AppId:            appId,
 		AppSecret:        appSecret,
 		BackendUrl:       strings.TrimSpace(strings.TrimSuffix(backendUrl, "/")),
-		EnableEncryption: option.enableEncryption,
 		HttpClient:       option.httpClient,
+		EnableEncryption: option.enableEncryption,
+		RequestTimeout:   option.requestTimeout,
 		Logger:           option.logger,
 	}
 	if config.Logger == nil {
@@ -49,4 +53,14 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 	}
 
 	return client
+}
+
+// Preheating to prevent delay in the first request
+func (c *Client) Preheat(ctx context.Context) error {
+	return c.ApiClient.Preheat(ctx)
+}
+
+// Close client
+func (c *Client) Close() error {
+	return c.ApiClient.Close()
 }

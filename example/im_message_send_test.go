@@ -2,6 +2,8 @@ package example
 
 import (
 	"context"
+	"log"
+	"sync"
 	"testing"
 
 	fhsdk "github.com/feihan-im/openapi-sdk-go"
@@ -16,9 +18,17 @@ func TestImMessageSend(t *testing.T) {
 		"c-TestAppId1",
 		"TestAppSecret1",
 	)
-	resp, err := client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{})
-	if err != nil {
-		panic(err)
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{})
+			if err != nil {
+				panic(err)
+			}
+			log.Println(fhcore.Pretty(resp))
+		}()
 	}
-	print(fhcore.Pretty(resp))
+	wg.Wait()
 }

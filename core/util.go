@@ -1,6 +1,10 @@
 package fhcore
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sync/atomic"
+	"time"
+)
 
 var (
 	JsonMarshal   func(v interface{}) ([]byte, error)    = json.Marshal
@@ -10,4 +14,22 @@ var (
 func Pretty(obj interface{}) string {
 	s, _ := json.MarshalIndent(obj, "", "  ")
 	return string(s)
+}
+
+var (
+	serverTimeBase int64 = 0
+	systemTimeBase int64 = 0
+)
+
+func setServerTimeBase(timestamp uint64) {
+	ts := int64(timestamp)
+	if atomic.LoadInt64(&serverTimeBase) > ts {
+		return
+	}
+	atomic.StoreInt64(&serverTimeBase, ts)
+	atomic.StoreInt64(&systemTimeBase, time.Now().UnixMilli())
+}
+
+func getCurrentTimestamp() uint64 {
+	return uint64(time.Now().UnixMilli() - atomic.LoadInt64(&systemTimeBase) + atomic.LoadInt64(&serverTimeBase))
 }
