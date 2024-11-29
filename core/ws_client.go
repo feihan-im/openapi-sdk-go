@@ -219,7 +219,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		c.lastMessageAt = time.Now().UnixMilli()
+		c.lastMessageAt = getSystemTimestamp()
 
 		var secureMessage model.SecureMessage
 		err = proto.Unmarshal(data, &secureMessage)
@@ -249,7 +249,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 	go c.handleMessage(ctx, socket)
 
 	c.isConnecting = false
-	c.lastMessageAt = time.Now().UnixMilli()
+	c.lastMessageAt = getSystemTimestamp()
 	c.startHealthCheckUnsafe(ctx)
 	c.startReconnectCheckUnsafe(ctx)
 	if c.shouldClose {
@@ -377,8 +377,8 @@ func (c *defaultWsClient) startReconnectCheckUnsafe(ctx context.Context) {
 		for range ticker.C {
 			c.mu.Lock()
 			if c.lastMessageAt != 0 {
-				duration := time.Now().UnixMilli() - c.lastMessageAt
-				if duration > c.aliveTimeout.Milliseconds() {
+				duration := getSystemTimestamp() - c.lastMessageAt
+				if duration > (c.aliveTimeout.Nanoseconds() / 1000000) {
 					c.reconnectUnsafe(ctx, false)
 				}
 			}
@@ -471,7 +471,7 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 				c.mu.Unlock()
 				return errors.New("invalid socket")
 			}
-			c.lastMessageAt = time.Now().UnixMilli()
+			c.lastMessageAt = getSystemTimestamp()
 			c.mu.Unlock()
 
 			go func() {

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	urlLib "net/url"
 	"strconv"
@@ -160,7 +161,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		var body []byte
 		{
 			if req.Stream != nil {
-				b, err := io.ReadAll(req.Stream)
+				b, err := ioutil.ReadAll(req.Stream)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -210,7 +211,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		// build request
-		httpReq, err := http.NewRequestWithContext(ctx, req.Method, c.config.BackendUrl+defaultGatewayPath, bytes.NewBuffer(body))
+		httpReq, err := http.NewRequest(req.Method, c.config.BackendUrl+defaultGatewayPath, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, &ApiError{Code: -1, Msg: err.Error()}
 		}
@@ -232,7 +233,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		return &ApiResponse{
 			GetBody: func() ([]byte, error) {
 				defer httpResp.Body.Close()
-				body, err := io.ReadAll(httpResp.Body)
+				body, err := ioutil.ReadAll(httpResp.Body)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -274,7 +275,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		// build request
-		httpReq, err := http.NewRequestWithContext(ctx, req.Method, url, body)
+		httpReq, err := http.NewRequest(req.Method, url, body)
 		if err != nil {
 			return nil, &ApiError{Code: -1, Msg: err.Error()}
 		}
@@ -306,7 +307,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		return &ApiResponse{
 			GetBody: func() ([]byte, error) {
 				defer httpResp.Body.Close()
-				body, err := io.ReadAll(httpResp.Body)
+				body, err := ioutil.ReadAll(httpResp.Body)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -364,7 +365,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 	}
 
 	callFetchToken := func(lock bool) {
-		resp, err := c.fetchToken(ctx)
+		resp, err := c.fetchToken()
 		if err != nil {
 			c.config.Logger.Errorf(ctx, "Get token error: %s", err.Error())
 		} else {
@@ -405,7 +406,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
-func (c *defaultApiClient) fetchToken(ctx context.Context) (*tokenResp, error) {
+func (c *defaultApiClient) fetchToken() (*tokenResp, error) {
 	timestamp := getCurrentTimestamp()
 	nonce := randIntn(1e12)
 
@@ -428,7 +429,7 @@ func (c *defaultApiClient) fetchToken(ctx context.Context) (*tokenResp, error) {
 		"nonce":             nonce,
 	})
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}
@@ -442,7 +443,7 @@ func (c *defaultApiClient) fetchToken(ctx context.Context) (*tokenResp, error) {
 	}
 
 	defer httpResp.Body.Close()
-	b, err := io.ReadAll(httpResp.Body)
+	b, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}
@@ -485,7 +486,7 @@ func (c *defaultApiClient) ensurePing(ctx context.Context) error {
 	}
 
 	callFetchPing := func(lock bool) {
-		resp, err := c.fetchPing(ctx)
+		resp, err := c.fetchPing()
 		if err != nil {
 			c.config.Logger.Errorf(ctx, "Ping server error: %s", err.Error())
 		} else {
@@ -532,9 +533,9 @@ func (c *defaultApiClient) ensurePing(ctx context.Context) error {
 	return nil
 }
 
-func (c *defaultApiClient) fetchPing(ctx context.Context) (*pingResp, error) {
+func (c *defaultApiClient) fetchPing() (*pingResp, error) {
 	url := c.config.BackendUrl + defaultPingPath
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}
@@ -548,7 +549,7 @@ func (c *defaultApiClient) fetchPing(ctx context.Context) (*pingResp, error) {
 	}
 
 	defer httpResp.Body.Close()
-	b, err := io.ReadAll(httpResp.Body)
+	b, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}
