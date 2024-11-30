@@ -442,6 +442,10 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 		}
 
 		switch content := message.Content.(type) {
+		case *model.WebSocketMessage_PingPong:
+			{
+				setServerTimeBase(content.PingPong)
+			}
 		case *model.WebSocketMessage_Event:
 		case *model.WebSocketMessage_HttpResponse:
 			{
