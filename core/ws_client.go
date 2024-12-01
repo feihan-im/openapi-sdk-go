@@ -403,8 +403,8 @@ func (c *defaultWsClient) startHealthCheckUnsafe(ctx context.Context) {
 	go func() {
 		for range ticker.C {
 			_ = c.sendMessage(ctx, &model.WebSocketMessage{
-				Content: &model.WebSocketMessage_PingPong_{
-					PingPong: &model.WebSocketMessage_PingPong{
+				Content: &model.WebSocketMessage_Ping_{
+					Ping: &model.WebSocketMessage_Ping{
 						Timestamp: getCurrentTimestamp(),
 					},
 				},
@@ -488,9 +488,9 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 		}
 
 		switch content := message.Content.(type) {
-		case *model.WebSocketMessage_PingPong_:
+		case *model.WebSocketMessage_Pong_:
 			{
-				setServerTimeBase(content.PingPong.Timestamp)
+				setServerTimeBase(content.Pong.Timestamp)
 			}
 		case *model.WebSocketMessage_Event_:
 			{

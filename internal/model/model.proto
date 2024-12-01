@@ -28,16 +28,21 @@ message HttpResponse {
 
 message WebSocketMessage {
     oneof content {
-        PingPong ping_pong = 1;
-        InitRequest init_request = 2;
-        InitResponse init_response = 3;
-        Event event = 4;
-        EventAck event_ack = 5;
-        HttpRequest http_request = 6;
-        HttpResponse http_response = 7;
+        Ping ping = 1;
+        Pong pong = 2;
+        InitRequest init_request = 3;
+        InitResponse init_response = 4;
+        Event event = 5;
+        EventAck event_ack = 6;
+        HttpRequest http_request = 7;
+        HttpResponse http_response = 8;
     }
 
-    message PingPong {
+    message Ping {
+        uint64 timestamp = 1;
+    }
+
+    message Pong {
         uint64 timestamp = 1;
     }
 
