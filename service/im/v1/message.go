@@ -8,6 +8,7 @@ import (
 
 type v1Message struct {
 	config *fhcore.Config
+	Event  *v1MessageEvent
 }
 
 type SendMessageReq struct {
@@ -22,7 +23,7 @@ func (v1 *v1Message) SendMessage(ctx context.Context, req *SendMessageReq) (*Sen
 		Path:               "/oapi/im/v1/messages",
 		Body:               req,
 		WithAppAccessToken: true,
-		WithWebsocket:      true,
+		WithWebSocket:      true,
 	})
 	if err != nil {
 		return nil, err

@@ -13,6 +13,9 @@ type clientOption struct {
 
 	logLevel fhcore.LoggerLevel
 	logger   fhcore.Logger
+
+	jsonMarshaller   fhcore.Marshaller
+	jsonUnmarshaller fhcore.Unmarshaller
 }
 
 type clientOptionFunc func(option *clientOption)
@@ -46,5 +49,17 @@ func WithLogLevel(logLevel fhcore.LoggerLevel) clientOptionFunc {
 func WithLogger(logger fhcore.Logger) clientOptionFunc {
 	return func(option *clientOption) {
 		option.logger = logger
+	}
+}
+
+func WithJsonMarshaller(jsonMarshaller fhcore.Marshaller) clientOptionFunc {
+	return func(option *clientOption) {
+		option.jsonMarshaller = jsonMarshaller
+	}
+}
+
+func WithJsonUnmarshaller(jsonUnmarshaller fhcore.Unmarshaller) clientOptionFunc {
+	return func(option *clientOption) {
+		option.jsonUnmarshaller = jsonUnmarshaller
 	}
 }

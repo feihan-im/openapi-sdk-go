@@ -2,6 +2,7 @@ package fhsdk
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 		logLevel:         fhcore.LoggerLevelInfo,
 		requestTimeout:   1 * time.Minute,
 		enableEncryption: true,
+		jsonMarshaller:   json.Marshal,
+		jsonUnmarshaller: json.Unmarshal,
 	}
 	for _, fn := range options {
 		fn(option)
@@ -36,6 +39,8 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 		EnableEncryption: option.enableEncryption,
 		RequestTimeout:   option.requestTimeout,
 		Logger:           option.logger,
+		JsonMarshal:      option.jsonMarshaller,
+		JsonUnmarshal:    option.jsonUnmarshaller,
 	}
 	if config.Logger == nil {
 		config.Logger = fhcore.NewDefaultLogger(option.logLevel)

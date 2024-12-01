@@ -23,7 +23,8 @@ import (
 type ApiClient interface {
 	Preheat(ctx context.Context) error
 	Request(ctx context.Context, req *ApiRequest) (*ApiResponse, error)
-	OnEvent(ctx context.Context, options *OnEventOptions)
+	OnEvent(eventType string, handler EventHandler)
+	OffEvent(eventType string, handler EventHandler)
 	Close() error
 }
 
@@ -36,10 +37,11 @@ type ApiRequest struct {
 	Body               interface{}       `json:"body,omitempty"`
 	Stream             io.Reader         `json:"stream,omitempty"`
 	WithAppAccessToken bool              `json:"with_app_access_token,omitempty"`
-	WithWebsocket      bool              `json:"with_websocket,omitempty"`
+	WithWebSocket      bool              `json:"with_websocket,omitempty"`
 }
 
 type ApiResponse struct {
+	config  *Config
 	GetBody func() ([]byte, error)
 }
 
@@ -104,8 +106,12 @@ func (c *defaultApiClient) Close() error {
 	return c.ws.Close()
 }
 
-func (c *defaultApiClient) OnEvent(ctx context.Context, options *OnEventOptions) {
-	c.ws.OnEvent(ctx, options)
+func (c *defaultApiClient) OnEvent(eventType string, handler EventHandler) {
+	c.ws.OnEvent(eventType, handler)
+}
+
+func (c *defaultApiClient) OffEvent(eventType string, handler EventHandler) {
+	c.ws.OffEvent(eventType, handler)
 }
 
 func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiResponse, error) {
@@ -169,7 +175,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 			} else if b, ok := req.Body.([]byte); ok {
 				body = b
 			} else {
-				b, err := JsonMarshal(req.Body)
+				b, err := c.config.JsonMarshal(req.Body)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -187,12 +193,13 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 			}
 
 			// send by websocket
-			if req.WithWebsocket {
+			if req.WithWebSocket {
 				httpResp, err := c.ws.HttpRequest(ctx, httpReq)
 				if err != nil {
 					return nil, err
 				}
 				return &ApiResponse{
+					config: c.config,
 					GetBody: func() ([]byte, error) {
 						return httpResp.Body, nil
 					},
@@ -231,6 +238,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		return &ApiResponse{
+			config: c.config,
 			GetBody: func() ([]byte, error) {
 				defer httpResp.Body.Close()
 				body, err := ioutil.ReadAll(httpResp.Body)
@@ -266,7 +274,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 			} else if b, ok := req.Body.([]byte); ok {
 				body = bytes.NewBuffer(b)
 			} else {
-				b, err := JsonMarshal(req.Body)
+				b, err := c.config.JsonMarshal(req.Body)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -305,6 +313,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		return &ApiResponse{
+			config: c.config,
 			GetBody: func() ([]byte, error) {
 				defer httpResp.Body.Close()
 				body, err := ioutil.ReadAll(httpResp.Body)
@@ -317,19 +326,21 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 	}
 }
 
+type apiResp struct {
+	Code  int         `json:"code"`
+	Msg   string      `json:"msg"`
+	LogId string      `json:"log_id"`
+	Data  interface{} `json:"data,omitempty"`
+}
+
 func (e *ApiResponse) JSON(value interface{}) error {
 	body, err := e.GetBody()
 	if err != nil {
 		return err
 	}
-	var data struct {
-		Code  int         `json:"code"`
-		Msg   string      `json:"msg"`
-		LogId string      `json:"log_id"`
-		Data  interface{} `json:"data,omitempty"`
-	}
+	var data apiResp
 	data.Data = value
-	err = JsonUnmarshal(body, &data)
+	err = e.config.JsonUnmarshal(body, &data)
 	if err != nil {
 		return &ApiError{Code: -1, Msg: err.Error()}
 	}
@@ -421,7 +432,7 @@ func (c *defaultApiClient) fetchToken() (*tokenResp, error) {
 	signature := hex.EncodeToString(s.Sum(nil))
 
 	url := c.config.BackendUrl + defaultTokenPath
-	body, _ := JsonMarshal(map[string]interface{}{
+	body, _ := c.config.JsonMarshal(map[string]interface{}{
 		"app_id":            c.config.AppId,
 		"signature_version": "v1",
 		"signature":         signature,
@@ -449,7 +460,7 @@ func (c *defaultApiClient) fetchToken() (*tokenResp, error) {
 	}
 
 	var resp tokenResp
-	err = JsonUnmarshal(b, &resp)
+	err = c.config.JsonUnmarshal(b, &resp)
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}
@@ -555,7 +566,7 @@ func (c *defaultApiClient) fetchPing() (*pingResp, error) {
 	}
 
 	var resp pingResp
-	err = JsonUnmarshal(b, &resp)
+	err = c.config.JsonUnmarshal(b, &resp)
 	if err != nil {
 		return nil, &ApiError{Code: -1, Msg: err.Error()}
 	}

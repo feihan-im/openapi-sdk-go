@@ -262,10 +262,10 @@ func (m *HttpResponse) GetReqId() string {
 type WebSocketMessage struct {
 	// Types that are valid to be assigned to Content:
 	//
-	//	*WebSocketMessage_PingPong
+	//	*WebSocketMessage_PingPong_
 	//	*WebSocketMessage_InitRequest_
 	//	*WebSocketMessage_InitResponse_
-	//	*WebSocketMessage_Event
+	//	*WebSocketMessage_Event_
 	//	*WebSocketMessage_EventAck_
 	//	*WebSocketMessage_HttpRequest
 	//	*WebSocketMessage_HttpResponse
@@ -314,8 +314,8 @@ type isWebSocketMessage_Content interface {
 	Size() int
 }
 
-type WebSocketMessage_PingPong struct {
-	PingPong uint64 `protobuf:"varint,1,opt,name=ping_pong,json=pingPong,proto3,oneof" json:"ping_pong,omitempty"`
+type WebSocketMessage_PingPong_ struct {
+	PingPong *WebSocketMessage_PingPong `protobuf:"bytes,1,opt,name=ping_pong,json=pingPong,proto3,oneof" json:"ping_pong,omitempty"`
 }
 type WebSocketMessage_InitRequest_ struct {
 	InitRequest *WebSocketMessage_InitRequest `protobuf:"bytes,2,opt,name=init_request,json=initRequest,proto3,oneof" json:"init_request,omitempty"`
@@ -323,8 +323,8 @@ type WebSocketMessage_InitRequest_ struct {
 type WebSocketMessage_InitResponse_ struct {
 	InitResponse *WebSocketMessage_InitResponse `protobuf:"bytes,3,opt,name=init_response,json=initResponse,proto3,oneof" json:"init_response,omitempty"`
 }
-type WebSocketMessage_Event struct {
-	Event []byte `protobuf:"bytes,4,opt,name=event,proto3,oneof" json:"event,omitempty"`
+type WebSocketMessage_Event_ struct {
+	Event *WebSocketMessage_Event `protobuf:"bytes,4,opt,name=event,proto3,oneof" json:"event,omitempty"`
 }
 type WebSocketMessage_EventAck_ struct {
 	EventAck *WebSocketMessage_EventAck `protobuf:"bytes,5,opt,name=event_ack,json=eventAck,proto3,oneof" json:"event_ack,omitempty"`
@@ -336,10 +336,10 @@ type WebSocketMessage_HttpResponse struct {
 	HttpResponse *HttpResponse `protobuf:"bytes,7,opt,name=http_response,json=httpResponse,proto3,oneof" json:"http_response,omitempty"`
 }
 
-func (*WebSocketMessage_PingPong) isWebSocketMessage_Content()      {}
+func (*WebSocketMessage_PingPong_) isWebSocketMessage_Content()     {}
 func (*WebSocketMessage_InitRequest_) isWebSocketMessage_Content()  {}
 func (*WebSocketMessage_InitResponse_) isWebSocketMessage_Content() {}
-func (*WebSocketMessage_Event) isWebSocketMessage_Content()         {}
+func (*WebSocketMessage_Event_) isWebSocketMessage_Content()        {}
 func (*WebSocketMessage_EventAck_) isWebSocketMessage_Content()     {}
 func (*WebSocketMessage_HttpRequest) isWebSocketMessage_Content()   {}
 func (*WebSocketMessage_HttpResponse) isWebSocketMessage_Content()  {}
@@ -351,11 +351,11 @@ func (m *WebSocketMessage) GetContent() isWebSocketMessage_Content {
 	return nil
 }
 
-func (m *WebSocketMessage) GetPingPong() uint64 {
-	if x, ok := m.GetContent().(*WebSocketMessage_PingPong); ok {
+func (m *WebSocketMessage) GetPingPong() *WebSocketMessage_PingPong {
+	if x, ok := m.GetContent().(*WebSocketMessage_PingPong_); ok {
 		return x.PingPong
 	}
-	return 0
+	return nil
 }
 
 func (m *WebSocketMessage) GetInitRequest() *WebSocketMessage_InitRequest {
@@ -372,8 +372,8 @@ func (m *WebSocketMessage) GetInitResponse() *WebSocketMessage_InitResponse {
 	return nil
 }
 
-func (m *WebSocketMessage) GetEvent() []byte {
-	if x, ok := m.GetContent().(*WebSocketMessage_Event); ok {
+func (m *WebSocketMessage) GetEvent() *WebSocketMessage_Event {
+	if x, ok := m.GetContent().(*WebSocketMessage_Event_); ok {
 		return x.Event
 	}
 	return nil
@@ -403,14 +403,61 @@ func (m *WebSocketMessage) GetHttpResponse() *HttpResponse {
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*WebSocketMessage) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*WebSocketMessage_PingPong)(nil),
+		(*WebSocketMessage_PingPong_)(nil),
 		(*WebSocketMessage_InitRequest_)(nil),
 		(*WebSocketMessage_InitResponse_)(nil),
-		(*WebSocketMessage_Event)(nil),
+		(*WebSocketMessage_Event_)(nil),
 		(*WebSocketMessage_EventAck_)(nil),
 		(*WebSocketMessage_HttpRequest)(nil),
 		(*WebSocketMessage_HttpResponse)(nil),
 	}
+}
+
+type WebSocketMessage_PingPong struct {
+	Timestamp            uint64   `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WebSocketMessage_PingPong) Reset()         { *m = WebSocketMessage_PingPong{} }
+func (m *WebSocketMessage_PingPong) String() string { return proto.CompactTextString(m) }
+func (*WebSocketMessage_PingPong) ProtoMessage()    {}
+func (*WebSocketMessage_PingPong) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e22144196c10bf72, []int{3, 0}
+}
+func (m *WebSocketMessage_PingPong) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WebSocketMessage_PingPong) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_WebSocketMessage_PingPong.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *WebSocketMessage_PingPong) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketMessage_PingPong.Merge(m, src)
+}
+func (m *WebSocketMessage_PingPong) XXX_Size() int {
+	return m.Size()
+}
+func (m *WebSocketMessage_PingPong) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketMessage_PingPong.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketMessage_PingPong proto.InternalMessageInfo
+
+func (m *WebSocketMessage_PingPong) GetTimestamp() uint64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
 }
 
 type WebSocketMessage_InitRequest struct {
@@ -424,7 +471,7 @@ func (m *WebSocketMessage_InitRequest) Reset()         { *m = WebSocketMessage_I
 func (m *WebSocketMessage_InitRequest) String() string { return proto.CompactTextString(m) }
 func (*WebSocketMessage_InitRequest) ProtoMessage()    {}
 func (*WebSocketMessage_InitRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e22144196c10bf72, []int{3, 0}
+	return fileDescriptor_e22144196c10bf72, []int{3, 1}
 }
 func (m *WebSocketMessage_InitRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -470,7 +517,7 @@ func (m *WebSocketMessage_InitResponse) Reset()         { *m = WebSocketMessage_
 func (m *WebSocketMessage_InitResponse) String() string { return proto.CompactTextString(m) }
 func (*WebSocketMessage_InitResponse) ProtoMessage()    {}
 func (*WebSocketMessage_InitResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e22144196c10bf72, []int{3, 1}
+	return fileDescriptor_e22144196c10bf72, []int{3, 2}
 }
 func (m *WebSocketMessage_InitResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -499,6 +546,124 @@ func (m *WebSocketMessage_InitResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_WebSocketMessage_InitResponse proto.InternalMessageInfo
 
+type WebSocketMessage_Event struct {
+	EventHeader          *WebSocketMessage_EventHeader `protobuf:"bytes,1,opt,name=event_header,json=eventHeader,proto3" json:"event_header,omitempty"`
+	EventBody            []byte                        `protobuf:"bytes,2,opt,name=event_body,json=eventBody,proto3" json:"event_body,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
+}
+
+func (m *WebSocketMessage_Event) Reset()         { *m = WebSocketMessage_Event{} }
+func (m *WebSocketMessage_Event) String() string { return proto.CompactTextString(m) }
+func (*WebSocketMessage_Event) ProtoMessage()    {}
+func (*WebSocketMessage_Event) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e22144196c10bf72, []int{3, 3}
+}
+func (m *WebSocketMessage_Event) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WebSocketMessage_Event) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_WebSocketMessage_Event.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *WebSocketMessage_Event) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketMessage_Event.Merge(m, src)
+}
+func (m *WebSocketMessage_Event) XXX_Size() int {
+	return m.Size()
+}
+func (m *WebSocketMessage_Event) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketMessage_Event.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketMessage_Event proto.InternalMessageInfo
+
+func (m *WebSocketMessage_Event) GetEventHeader() *WebSocketMessage_EventHeader {
+	if m != nil {
+		return m.EventHeader
+	}
+	return nil
+}
+
+func (m *WebSocketMessage_Event) GetEventBody() []byte {
+	if m != nil {
+		return m.EventBody
+	}
+	return nil
+}
+
+type WebSocketMessage_EventHeader struct {
+	EventId              string   `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	EventType            string   `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	EventCreatedAt       uint64   `protobuf:"varint,3,opt,name=event_created_at,json=eventCreatedAt,proto3" json:"event_created_at,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WebSocketMessage_EventHeader) Reset()         { *m = WebSocketMessage_EventHeader{} }
+func (m *WebSocketMessage_EventHeader) String() string { return proto.CompactTextString(m) }
+func (*WebSocketMessage_EventHeader) ProtoMessage()    {}
+func (*WebSocketMessage_EventHeader) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e22144196c10bf72, []int{3, 4}
+}
+func (m *WebSocketMessage_EventHeader) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WebSocketMessage_EventHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_WebSocketMessage_EventHeader.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *WebSocketMessage_EventHeader) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketMessage_EventHeader.Merge(m, src)
+}
+func (m *WebSocketMessage_EventHeader) XXX_Size() int {
+	return m.Size()
+}
+func (m *WebSocketMessage_EventHeader) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketMessage_EventHeader.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketMessage_EventHeader proto.InternalMessageInfo
+
+func (m *WebSocketMessage_EventHeader) GetEventId() string {
+	if m != nil {
+		return m.EventId
+	}
+	return ""
+}
+
+func (m *WebSocketMessage_EventHeader) GetEventType() string {
+	if m != nil {
+		return m.EventType
+	}
+	return ""
+}
+
+func (m *WebSocketMessage_EventHeader) GetEventCreatedAt() uint64 {
+	if m != nil {
+		return m.EventCreatedAt
+	}
+	return 0
+}
+
 type WebSocketMessage_EventAck struct {
 	EventId              string   `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -510,7 +675,7 @@ func (m *WebSocketMessage_EventAck) Reset()         { *m = WebSocketMessage_Even
 func (m *WebSocketMessage_EventAck) String() string { return proto.CompactTextString(m) }
 func (*WebSocketMessage_EventAck) ProtoMessage()    {}
 func (*WebSocketMessage_EventAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e22144196c10bf72, []int{3, 2}
+	return fileDescriptor_e22144196c10bf72, []int{3, 5}
 }
 func (m *WebSocketMessage_EventAck) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -553,53 +718,62 @@ func init() {
 	proto.RegisterType((*HttpResponse)(nil), "model.HttpResponse")
 	proto.RegisterMapType((map[string]string)(nil), "model.HttpResponse.HeadersEntry")
 	proto.RegisterType((*WebSocketMessage)(nil), "model.WebSocketMessage")
+	proto.RegisterType((*WebSocketMessage_PingPong)(nil), "model.WebSocketMessage.PingPong")
 	proto.RegisterType((*WebSocketMessage_InitRequest)(nil), "model.WebSocketMessage.InitRequest")
 	proto.RegisterType((*WebSocketMessage_InitResponse)(nil), "model.WebSocketMessage.InitResponse")
+	proto.RegisterType((*WebSocketMessage_Event)(nil), "model.WebSocketMessage.Event")
+	proto.RegisterType((*WebSocketMessage_EventHeader)(nil), "model.WebSocketMessage.EventHeader")
 	proto.RegisterType((*WebSocketMessage_EventAck)(nil), "model.WebSocketMessage.EventAck")
 }
 
 func init() { proto.RegisterFile("internal/model/model.proto", fileDescriptor_e22144196c10bf72) }
 
 var fileDescriptor_e22144196c10bf72 = []byte{
-	// 601 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xcb, 0x6a, 0xdb, 0x50,
-	0x10, 0xb5, 0xe2, 0x57, 0x34, 0x92, 0x43, 0xb8, 0x6d, 0x83, 0x6a, 0xf2, 0x30, 0x49, 0x03, 0x5e,
-	0x14, 0x17, 0xd2, 0x45, 0x5b, 0x6f, 0x4a, 0xd2, 0x06, 0x14, 0x42, 0xa1, 0x28, 0x85, 0x42, 0x37,
-	0xe2, 0x46, 0x1a, 0x6c, 0xe1, 0xf8, 0x5e, 0x45, 0x1a, 0x87, 0xf8, 0x07, 0xfa, 0x2f, 0xfd, 0x93,
-	0x2e, 0xbb, 0xef, 0xa6, 0xe4, 0x17, 0xfa, 0x03, 0xe5, 0x3e, 0x1c, 0x2b, 0x49, 0xe9, 0xb6, 0x1b,
-	0x33, 0x67, 0x38, 0x73, 0x34, 0x67, 0x66, 0x7c, 0xa1, 0x9b, 0x09, 0xc2, 0x42, 0xf0, 0x8b, 0x17,
-	0x53, 0x99, 0xa2, 0xfd, 0x1d, 0xe4, 0x85, 0x24, 0xc9, 0x9a, 0x1a, 0xec, 0x7e, 0x73, 0xa0, 0x73,
-	0x86, 0xc9, 0xac, 0xc0, 0x0f, 0x58, 0x96, 0x7c, 0x84, 0x2c, 0x80, 0xf6, 0x15, 0x16, 0x65, 0x26,
-	0x45, 0xe0, 0xf4, 0x9c, 0xbe, 0x1b, 0x2d, 0x20, 0xdb, 0x04, 0x97, 0xb2, 0x29, 0x96, 0xc4, 0xa7,
-	0x79, 0xb0, 0xd2, 0x73, 0xfa, 0x8d, 0x68, 0x99, 0x60, 0x8f, 0xa1, 0x29, 0xa4, 0x48, 0x30, 0xa8,
-	0xeb, 0x2a, 0x03, 0xd8, 0x1e, 0x74, 0x50, 0x24, 0xc5, 0x3c, 0x27, 0x4c, 0xe3, 0x09, 0xce, 0x83,
-	0x46, 0xcf, 0xe9, 0xfb, 0x91, 0x7f, 0x9b, 0x3c, 0xc5, 0x39, 0xdb, 0x87, 0xb5, 0x25, 0x29, 0xe5,
-	0xc4, 0x83, 0xa6, 0x66, 0x2d, 0x4b, 0xdf, 0x73, 0xe2, 0xbb, 0x3f, 0x1d, 0xf0, 0x42, 0xa2, 0x3c,
-	0xc2, 0xcb, 0x19, 0x96, 0xc4, 0x36, 0xa0, 0x35, 0x45, 0x1a, 0xcb, 0xd4, 0x36, 0x6a, 0x11, 0x63,
-	0xd0, 0xc8, 0x39, 0x8d, 0x75, 0x8b, 0x6e, 0xa4, 0x63, 0xf6, 0x06, 0xda, 0x63, 0xe4, 0x29, 0x16,
-	0x65, 0x50, 0xef, 0xd5, 0xfb, 0xde, 0xc1, 0xce, 0xc0, 0x4c, 0xa3, 0x22, 0x38, 0x08, 0x0d, 0xe3,
-	0x58, 0x50, 0x31, 0x8f, 0x16, 0x7c, 0x25, 0x77, 0x2e, 0xd3, 0x45, 0xe7, 0x3a, 0x66, 0x4f, 0xa0,
-	0x55, 0xe0, 0x65, 0x9c, 0xa5, 0xba, 0x53, 0x37, 0x6a, 0x16, 0x78, 0x79, 0x92, 0x76, 0x87, 0xe0,
-	0x57, 0x35, 0xd8, 0x3a, 0xd4, 0x95, 0x67, 0xd3, 0x9e, 0x0a, 0xd5, 0x94, 0xae, 0xf8, 0xc5, 0x0c,
-	0x6d, 0x73, 0x06, 0x0c, 0x57, 0x5e, 0x3b, 0xbb, 0xbf, 0x1d, 0xf0, 0x4d, 0x33, 0x65, 0x2e, 0x45,
-	0x89, 0x6c, 0x07, 0xbc, 0x92, 0x38, 0xcd, 0xca, 0x38, 0x91, 0x29, 0x6a, 0x91, 0x66, 0x04, 0x26,
-	0xf5, 0x4e, 0xa6, 0x55, 0x02, 0xe1, 0x35, 0x59, 0x45, 0x4b, 0xf8, 0x84, 0xd7, 0xc4, 0x86, 0xf7,
-	0x4d, 0xf7, 0xee, 0x98, 0x36, 0xdf, 0xf9, 0xbf, 0xae, 0xbf, 0x36, 0x60, 0xfd, 0x33, 0x9e, 0x9f,
-	0xc9, 0x64, 0x82, 0xb4, 0x38, 0xc1, 0x2d, 0x70, 0xf3, 0x4c, 0x8c, 0xe2, 0x5c, 0x8a, 0x91, 0x96,
-	0x69, 0x84, 0xb5, 0x68, 0x55, 0xa5, 0x3e, 0x4a, 0x31, 0x62, 0x21, 0xf8, 0x99, 0xc8, 0x28, 0x2e,
-	0xcc, 0xda, 0xb4, 0xa8, 0x77, 0xb0, 0x67, 0xbd, 0xdd, 0x57, 0x1b, 0x9c, 0x88, 0x8c, 0xec, 0x86,
-	0xc3, 0x5a, 0xe4, 0x65, 0x4b, 0xc8, 0x4e, 0xa1, 0x63, 0x95, 0xcc, 0x2c, 0xf4, 0xed, 0x7a, 0x07,
-	0xcf, 0xfe, 0x2d, 0x65, 0xb8, 0x61, 0x2d, 0xf2, 0xb3, 0x0a, 0x66, 0x1b, 0xd0, 0xc4, 0x2b, 0x14,
-	0x64, 0x46, 0x16, 0xd6, 0x22, 0x03, 0xd9, 0x5b, 0x70, 0x75, 0x10, 0xf3, 0x64, 0xa2, 0x07, 0xb7,
-	0xdc, 0xc3, 0x83, 0x0f, 0x1c, 0x2b, 0xe2, 0x61, 0x32, 0x51, 0x7e, 0xd1, 0xc6, 0xec, 0x15, 0xf8,
-	0x63, 0xa2, 0xfc, 0xd6, 0x6f, 0x4b, 0x6b, 0xb0, 0x87, 0x07, 0xac, 0xec, 0x8d, 0x2b, 0x7f, 0x90,
-	0x21, 0x74, 0x6c, 0xa1, 0xb5, 0xd7, 0xd6, 0x95, 0x8f, 0xfe, 0x72, 0x05, 0xca, 0xcd, 0xb8, 0x82,
-	0xbb, 0xcf, 0xc1, 0xab, 0x0c, 0x8e, 0x6d, 0x01, 0xcc, 0x4a, 0x2c, 0x62, 0x3e, 0x52, 0x0e, 0xcd,
-	0x6a, 0x5d, 0x95, 0x39, 0x54, 0x89, 0xee, 0x1a, 0xf8, 0xd5, 0xd9, 0x74, 0xf7, 0x61, 0x75, 0x61,
-	0x85, 0x3d, 0x05, 0x63, 0x45, 0xdd, 0x8d, 0x7d, 0x51, 0x34, 0x3e, 0x49, 0x8f, 0x5c, 0x68, 0x27,
-	0x52, 0x10, 0x0a, 0x3a, 0xda, 0xfc, 0x7e, 0xb3, 0xed, 0xfc, 0xb8, 0xd9, 0x76, 0x7e, 0xdd, 0x6c,
-	0x3b, 0x5f, 0xd6, 0xee, 0xbe, 0x5c, 0xe7, 0x2d, 0xfd, 0x68, 0xbd, 0xfc, 0x13, 0x00, 0x00, 0xff,
-	0xff, 0x49, 0x81, 0x0e, 0x6a, 0xd2, 0x04, 0x00, 0x00,
+	// 703 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0x4d, 0x6b, 0xdb, 0x4c,
+	0x10, 0xb6, 0xe2, 0xaf, 0x78, 0x24, 0x9b, 0xb0, 0xef, 0x07, 0xae, 0xc8, 0x87, 0x49, 0x1a, 0xf0,
+	0xa1, 0xb8, 0xe0, 0x52, 0xda, 0xfa, 0x52, 0x92, 0x34, 0xc5, 0x21, 0x14, 0x82, 0x12, 0x28, 0xf4,
+	0x62, 0x36, 0xd2, 0x60, 0x0b, 0xc7, 0xbb, 0xb2, 0x34, 0x0e, 0xf1, 0x4f, 0xea, 0x3f, 0xe9, 0xb1,
+	0x87, 0xde, 0x7a, 0x29, 0xf9, 0x0b, 0xfd, 0x03, 0x65, 0x3f, 0x1c, 0x2b, 0x69, 0xe3, 0x6b, 0x2f,
+	0x66, 0x67, 0xfc, 0xcc, 0xb3, 0x33, 0xcf, 0x3e, 0xbb, 0x02, 0x3f, 0x16, 0x84, 0xa9, 0xe0, 0x57,
+	0xcf, 0x27, 0x32, 0x42, 0xfb, 0xdb, 0x49, 0x52, 0x49, 0x92, 0x95, 0x75, 0xb0, 0xfb, 0xd9, 0x81,
+	0xfa, 0x39, 0x86, 0xb3, 0x14, 0x3f, 0x60, 0x96, 0xf1, 0x21, 0xb2, 0x26, 0x54, 0xaf, 0x31, 0xcd,
+	0x62, 0x29, 0x9a, 0x4e, 0xcb, 0x69, 0xd7, 0x82, 0x45, 0xc8, 0x36, 0xa1, 0x46, 0xf1, 0x04, 0x33,
+	0xe2, 0x93, 0xa4, 0xb9, 0xd6, 0x72, 0xda, 0xa5, 0x60, 0x99, 0x60, 0xff, 0x42, 0x59, 0x48, 0x11,
+	0x62, 0xb3, 0xa8, 0xab, 0x4c, 0xc0, 0xf6, 0xa0, 0x8e, 0x22, 0x4c, 0xe7, 0x09, 0x61, 0x34, 0x18,
+	0xe3, 0xbc, 0x59, 0x6a, 0x39, 0x6d, 0x2f, 0xf0, 0xee, 0x92, 0xa7, 0x38, 0x67, 0xfb, 0xd0, 0x58,
+	0x82, 0x22, 0x4e, 0xbc, 0x59, 0xd6, 0xa8, 0x65, 0xe9, 0x3b, 0x4e, 0x7c, 0xf7, 0xbb, 0x03, 0x6e,
+	0x9f, 0x28, 0x09, 0x70, 0x3a, 0xc3, 0x8c, 0xd8, 0xff, 0x50, 0x99, 0x20, 0x8d, 0x64, 0x64, 0x1b,
+	0xb5, 0x11, 0x63, 0x50, 0x4a, 0x38, 0x8d, 0x74, 0x8b, 0xb5, 0x40, 0xaf, 0xd9, 0x1b, 0xa8, 0x8e,
+	0x90, 0x47, 0x98, 0x66, 0xcd, 0x62, 0xab, 0xd8, 0x76, 0xbb, 0x3b, 0x1d, 0xa3, 0x46, 0x8e, 0xb0,
+	0xd3, 0x37, 0x88, 0x63, 0x41, 0xe9, 0x3c, 0x58, 0xe0, 0x15, 0xdd, 0xa5, 0x8c, 0x16, 0x9d, 0xeb,
+	0x35, 0xfb, 0x0f, 0x2a, 0x29, 0x4e, 0x07, 0x71, 0xa4, 0x3b, 0xad, 0x05, 0xe5, 0x14, 0xa7, 0x27,
+	0x91, 0xdf, 0x03, 0x2f, 0xcf, 0xc1, 0x36, 0xa0, 0xa8, 0x66, 0x36, 0xed, 0xa9, 0xa5, 0x52, 0xe9,
+	0x9a, 0x5f, 0xcd, 0xd0, 0x36, 0x67, 0x82, 0xde, 0xda, 0x6b, 0x67, 0xf7, 0xa7, 0x03, 0x9e, 0x69,
+	0x26, 0x4b, 0xa4, 0xc8, 0x90, 0xed, 0x80, 0x9b, 0x11, 0xa7, 0x59, 0x36, 0x08, 0x65, 0x84, 0x9a,
+	0xa4, 0x1c, 0x80, 0x49, 0x1d, 0xc9, 0x28, 0x0f, 0x20, 0xbc, 0x21, 0xcb, 0x68, 0x01, 0x17, 0x78,
+	0x43, 0xac, 0xf7, 0x70, 0xe8, 0xd6, 0xbd, 0xa1, 0xcd, 0x3e, 0x7f, 0x77, 0xea, 0x6f, 0x15, 0xd8,
+	0xf8, 0x88, 0x97, 0xe7, 0x32, 0x1c, 0x23, 0x2d, 0x2c, 0xf8, 0x16, 0x6a, 0x49, 0x2c, 0x86, 0x83,
+	0x44, 0x8a, 0xa1, 0xa6, 0x59, 0x76, 0xfe, 0x10, 0xdb, 0x39, 0x8b, 0xc5, 0xf0, 0x4c, 0x8a, 0x61,
+	0xbf, 0x10, 0xac, 0x27, 0x76, 0xcd, 0xfa, 0xe0, 0xc5, 0x22, 0xa6, 0x41, 0x6a, 0x0e, 0x56, 0x6f,
+	0xeb, 0x76, 0xf7, 0x1e, 0xe3, 0x38, 0x11, 0x31, 0x59, 0x0f, 0xf4, 0x0b, 0x81, 0x1b, 0x2f, 0x43,
+	0x76, 0x0a, 0x75, 0xcb, 0x64, 0xd4, 0xd2, 0xee, 0x76, 0xbb, 0x4f, 0x57, 0x53, 0x19, 0x6c, 0xbf,
+	0x10, 0x78, 0x71, 0x2e, 0x66, 0x2f, 0xa1, 0x8c, 0xd7, 0x28, 0x48, 0x8b, 0xea, 0x76, 0xb7, 0x1e,
+	0x23, 0x39, 0x56, 0xa0, 0x7e, 0x21, 0x30, 0x68, 0x25, 0x87, 0x5e, 0x0c, 0x78, 0x38, 0xd6, 0xca,
+	0xaf, 0x90, 0x43, 0x97, 0x1e, 0x84, 0x63, 0x25, 0x07, 0xda, 0x35, 0x7b, 0x05, 0xde, 0x88, 0x28,
+	0xb9, 0x93, 0xa3, 0xa2, 0x39, 0xd8, 0xef, 0x37, 0x40, 0x4d, 0x3f, 0xca, 0xdd, 0xb0, 0x1e, 0xd4,
+	0x6d, 0xa1, 0x9d, 0xbe, 0xaa, 0x2b, 0xff, 0xf9, 0x83, 0x8d, 0xd4, 0xb0, 0xa3, 0x5c, 0xec, 0xb7,
+	0x61, 0x7d, 0x71, 0x36, 0xf7, 0x5f, 0x0e, 0xe7, 0xc1, 0xcb, 0xe1, 0x3f, 0x03, 0x37, 0x77, 0x02,
+	0x6c, 0x0b, 0x60, 0x96, 0x61, 0x3a, 0xe0, 0x43, 0x25, 0x95, 0x71, 0x51, 0x4d, 0x65, 0x0e, 0x54,
+	0xc2, 0x6f, 0x80, 0x97, 0x17, 0xd9, 0x17, 0x50, 0xd6, 0x43, 0xb3, 0xf7, 0xe0, 0x19, 0x99, 0x8c,
+	0x85, 0xad, 0x71, 0xf6, 0x56, 0x8b, 0xac, 0xa1, 0x81, 0x8b, 0xcb, 0x40, 0xed, 0x6f, 0x78, 0xb4,
+	0xff, 0xd7, 0xb4, 0xff, 0xcd, 0x01, 0x1c, 0xca, 0x68, 0xee, 0x4f, 0xc1, 0xcd, 0x95, 0xb2, 0x27,
+	0x60, 0x74, 0x56, 0xb7, 0xc2, 0xbe, 0x97, 0x3a, 0x3e, 0x89, 0x96, 0x44, 0x34, 0x4f, 0x16, 0xd6,
+	0x37, 0x44, 0x17, 0xf3, 0x04, 0x59, 0x1b, 0x36, 0xcc, 0xdf, 0x61, 0x8a, 0x5c, 0xbd, 0x7c, 0x9c,
+	0xb4, 0xbb, 0x4a, 0x41, 0x43, 0xe7, 0x8f, 0x4c, 0xfa, 0x80, 0xfc, 0x7d, 0x58, 0x5f, 0x9c, 0xeb,
+	0x8a, 0xfd, 0x0e, 0x6b, 0x50, 0x0d, 0xa5, 0x20, 0xd5, 0xe8, 0xe6, 0x97, 0xdb, 0x6d, 0xe7, 0xeb,
+	0xed, 0xb6, 0xf3, 0xe3, 0x76, 0xdb, 0xf9, 0xd4, 0xb8, 0xff, 0x1d, 0xb8, 0xac, 0xe8, 0x4f, 0xc0,
+	0x8b, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xc5, 0xba, 0xbc, 0x3b, 0x20, 0x06, 0x00, 0x00,
 }
 
 func (m *SecureMessage) Marshal() (dAtA []byte, err error) {
@@ -844,16 +1018,25 @@ func (m *WebSocketMessage) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *WebSocketMessage_PingPong) MarshalTo(dAtA []byte) (int, error) {
+func (m *WebSocketMessage_PingPong_) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *WebSocketMessage_PingPong) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *WebSocketMessage_PingPong_) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	i = encodeVarintModel(dAtA, i, uint64(m.PingPong))
-	i--
-	dAtA[i] = 0x8
+	if m.PingPong != nil {
+		{
+			size, err := m.PingPong.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintModel(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 func (m *WebSocketMessage_InitRequest_) MarshalTo(dAtA []byte) (int, error) {
@@ -898,17 +1081,22 @@ func (m *WebSocketMessage_InitResponse_) MarshalToSizedBuffer(dAtA []byte) (int,
 	}
 	return len(dAtA) - i, nil
 }
-func (m *WebSocketMessage_Event) MarshalTo(dAtA []byte) (int, error) {
+func (m *WebSocketMessage_Event_) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *WebSocketMessage_Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *WebSocketMessage_Event_) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	if m.Event != nil {
-		i -= len(m.Event)
-		copy(dAtA[i:], m.Event)
-		i = encodeVarintModel(dAtA, i, uint64(len(m.Event)))
+		{
+			size, err := m.Event.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintModel(dAtA, i, uint64(size))
+		}
 		i--
 		dAtA[i] = 0x22
 	}
@@ -977,6 +1165,38 @@ func (m *WebSocketMessage_HttpResponse) MarshalToSizedBuffer(dAtA []byte) (int, 
 	}
 	return len(dAtA) - i, nil
 }
+func (m *WebSocketMessage_PingPong) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebSocketMessage_PingPong) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WebSocketMessage_PingPong) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Timestamp != 0 {
+		i = encodeVarintModel(dAtA, i, uint64(m.Timestamp))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WebSocketMessage_InitRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1034,6 +1254,98 @@ func (m *WebSocketMessage_InitResponse) MarshalToSizedBuffer(dAtA []byte) (int, 
 	if m.XXX_unrecognized != nil {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebSocketMessage_Event) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebSocketMessage_Event) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WebSocketMessage_Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.EventBody) > 0 {
+		i -= len(m.EventBody)
+		copy(dAtA[i:], m.EventBody)
+		i = encodeVarintModel(dAtA, i, uint64(len(m.EventBody)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.EventHeader != nil {
+		{
+			size, err := m.EventHeader.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintModel(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebSocketMessage_EventHeader) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebSocketMessage_EventHeader) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WebSocketMessage_EventHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.EventCreatedAt != 0 {
+		i = encodeVarintModel(dAtA, i, uint64(m.EventCreatedAt))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.EventType) > 0 {
+		i -= len(m.EventType)
+		copy(dAtA[i:], m.EventType)
+		i = encodeVarintModel(dAtA, i, uint64(len(m.EventType)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.EventId) > 0 {
+		i -= len(m.EventId)
+		copy(dAtA[i:], m.EventId)
+		i = encodeVarintModel(dAtA, i, uint64(len(m.EventId)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1200,13 +1512,16 @@ func (m *WebSocketMessage) Size() (n int) {
 	return n
 }
 
-func (m *WebSocketMessage_PingPong) Size() (n int) {
+func (m *WebSocketMessage_PingPong_) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	n += 1 + sovModel(uint64(m.PingPong))
+	if m.PingPong != nil {
+		l = m.PingPong.Size()
+		n += 1 + l + sovModel(uint64(l))
+	}
 	return n
 }
 func (m *WebSocketMessage_InitRequest_) Size() (n int) {
@@ -1233,14 +1548,14 @@ func (m *WebSocketMessage_InitResponse_) Size() (n int) {
 	}
 	return n
 }
-func (m *WebSocketMessage_Event) Size() (n int) {
+func (m *WebSocketMessage_Event_) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Event != nil {
-		l = len(m.Event)
+		l = m.Event.Size()
 		n += 1 + l + sovModel(uint64(l))
 	}
 	return n
@@ -1281,6 +1596,21 @@ func (m *WebSocketMessage_HttpResponse) Size() (n int) {
 	}
 	return n
 }
+func (m *WebSocketMessage_PingPong) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Timestamp != 0 {
+		n += 1 + sovModel(uint64(m.Timestamp))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *WebSocketMessage_InitRequest) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1303,6 +1633,49 @@ func (m *WebSocketMessage_InitResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *WebSocketMessage_Event) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.EventHeader != nil {
+		l = m.EventHeader.Size()
+		n += 1 + l + sovModel(uint64(l))
+	}
+	l = len(m.EventBody)
+	if l > 0 {
+		n += 1 + l + sovModel(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *WebSocketMessage_EventHeader) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.EventId)
+	if l > 0 {
+		n += 1 + l + sovModel(uint64(l))
+	}
+	l = len(m.EventType)
+	if l > 0 {
+		n += 1 + l + sovModel(uint64(l))
+	}
+	if m.EventCreatedAt != 0 {
+		n += 1 + sovModel(uint64(m.EventCreatedAt))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -2175,10 +2548,10 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PingPong", wireType)
 			}
-			var v uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowModel
@@ -2188,12 +2561,27 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.Content = &WebSocketMessage_PingPong{v}
+			if msglen < 0 {
+				return ErrInvalidLengthModel
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthModel
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &WebSocketMessage_PingPong{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Content = &WebSocketMessage_PingPong_{v}
+			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field InitRequest", wireType)
@@ -2268,7 +2656,7 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Event", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowModel
@@ -2278,24 +2666,26 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthModel
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthModel
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := make([]byte, postIndex-iNdEx)
-			copy(v, dAtA[iNdEx:postIndex])
-			m.Content = &WebSocketMessage_Event{v}
+			v := &WebSocketMessage_Event{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Content = &WebSocketMessage_Event_{v}
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -2402,6 +2792,79 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 			}
 			m.Content = &WebSocketMessage_HttpResponse{v}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipModel(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebSocketMessage_PingPong) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowModel
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PingPong: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PingPong: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			m.Timestamp = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Timestamp |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipModel(dAtA[iNdEx:])
@@ -2542,6 +3005,267 @@ func (m *WebSocketMessage_InitResponse) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: InitResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipModel(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebSocketMessage_Event) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowModel
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Event: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Event: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventHeader", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthModel
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthModel
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.EventHeader == nil {
+				m.EventHeader = &WebSocketMessage_EventHeader{}
+			}
+			if err := m.EventHeader.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventBody", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthModel
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthModel
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EventBody = append(m.EventBody[:0], dAtA[iNdEx:postIndex]...)
+			if m.EventBody == nil {
+				m.EventBody = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipModel(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthModel
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebSocketMessage_EventHeader) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowModel
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventHeader: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventHeader: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthModel
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthModel
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EventId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthModel
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthModel
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EventType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventCreatedAt", wireType)
+			}
+			m.EventCreatedAt = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowModel
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EventCreatedAt |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipModel(dAtA[iNdEx:])

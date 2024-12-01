@@ -13,4 +13,7 @@ type Config struct {
 	RequestTimeout   time.Duration
 
 	Logger Logger
+
+	JsonMarshal   Marshaller
+	JsonUnmarshal Unmarshaller
 }

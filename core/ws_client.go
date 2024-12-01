@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -12,24 +13,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type OnEventOptions struct {
-	Unmarshaller func(data []byte) *Event
-	Callback     func(ctx context.Context, event *Event) error
-}
+type EventHandler func(ctx context.Context, header *EventHeader, body []byte) error
 
-type Event struct {
-	EventId        string      `json:"event_id"`
-	EventType      string      `json:"event_type"`
-	EventContent   interface{} `json:"event_content"`
-	EventCreatedAt uint64      `json:"event_created_at"` // timestamp in milliseconds
+type EventHeader struct {
+	EventId        string `json:"event_id,omitempty"`
+	EventType      string `json:"event_type,omitempty"`
+	EventCreatedAt uint64 `json:"event_created_at,omitempty"`
 }
 
 type defaultWsClient struct {
-	config     *Config
-	secret     string
-	getToken   func(ctx context.Context) (string, error)
-	ensurePing func(ctx context.Context) error
-	initOnce   sync.Once
+	config             *Config
+	secret             string
+	getToken           func(ctx context.Context) (string, error)
+	ensurePing         func(ctx context.Context) error
+	initOnce           sync.Once
+	eventHandlerMap    sync.Map
+	eventUnsupportType sync.Map
 
 	reconnectCheckInterval time.Duration
 	healthCheckInterval    time.Duration
@@ -44,7 +43,7 @@ type defaultWsClient struct {
 	mu             sync.Mutex
 
 	reqCount       int
-	reqCallbacks   map[string]*wsReqCallbacks
+	reqCallbacks   map[string]*defaultWsReqCallbacks
 	reqCallbacksMu sync.Mutex
 
 	reconnectAttempt     int
@@ -54,8 +53,13 @@ type defaultWsClient struct {
 	reconnectTimer       *time.Timer
 }
 
-type wsReqCallbacks struct {
+type defaultWsReqCallbacks struct {
 	resp chan *model.HttpResponse
+}
+
+type defaultWsEventHandlerSet struct {
+	mu       sync.RWMutex
+	handlers []EventHandler
 }
 
 type defaultWsClientOptions struct {
@@ -85,10 +89,39 @@ func (c *defaultWsClient) init(ctx context.Context) {
 	_ = c.connect(ctx)
 }
 
-func (c *defaultWsClient) OnEvent(ctx context.Context, options *OnEventOptions) {
-	c.initOnce.Do(func() {
-		c.init(ctx)
-	})
+func (c *defaultWsClient) OnEvent(eventType string, handler EventHandler) {
+	v, ok := c.eventHandlerMap.Load(eventType)
+	if !ok {
+		v, _ = c.eventHandlerMap.LoadOrStore(eventType, &defaultWsEventHandlerSet{})
+	}
+	set := v.(*defaultWsEventHandlerSet)
+	set.mu.Lock()
+	set.handlers = append(set.handlers, handler)
+	set.mu.Unlock()
+}
+
+func (c *defaultWsClient) OffEvent(eventType string, handler EventHandler) {
+	v, ok := c.eventHandlerMap.Load(eventType)
+	if !ok {
+		return
+	}
+	hp := reflect.ValueOf(handler).Pointer()
+	set := v.(*defaultWsEventHandlerSet)
+	set.mu.Lock()
+	i := 0
+	for ; i < len(set.handlers); i++ {
+		p := reflect.ValueOf(set.handlers[i]).Pointer()
+		if hp == p {
+			break
+		}
+	}
+	if i < len(set.handlers) {
+		for ; i+1 < len(set.handlers); i++ {
+			set.handlers[i] = set.handlers[i+1]
+		}
+		set.handlers = set.handlers[0 : len(set.handlers)-1]
+	}
+	set.mu.Unlock()
 }
 
 func (c *defaultWsClient) HttpRequest(ctx context.Context, req *model.HttpRequest) (*model.HttpResponse, error) {
@@ -100,7 +133,7 @@ func (c *defaultWsClient) HttpRequest(ctx context.Context, req *model.HttpReques
 	respCh := make(chan *model.HttpResponse)
 
 	c.reqCallbacksMu.Lock()
-	c.reqCallbacks[req.ReqId] = &wsReqCallbacks{
+	c.reqCallbacks[req.ReqId] = &defaultWsReqCallbacks{
 		resp: respCh,
 	}
 	c.reqCallbacksMu.Unlock()
@@ -149,7 +182,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 		close(cb.resp)
 	}
 	c.reqCount = 0
-	c.reqCallbacks = map[string]*wsReqCallbacks{}
+	c.reqCallbacks = map[string]*defaultWsReqCallbacks{}
 	c.lastMessageAt = 0
 	c.clearTimerUnsafe()
 
@@ -284,7 +317,18 @@ func (c *defaultWsClient) closeUnsafe() (err error) {
 	c.socket = nil
 	c.shouldClose = true
 	if s != nil {
-		s.Close()
+		err = s.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+			time.Now().Add(c.writeTimeout),
+		)
+		if err != nil {
+			return err
+		}
+		err = s.Close()
+		if err != nil {
+			return err
+		}
 	}
 	c.clearTimerUnsafe()
 	return nil
@@ -359,8 +403,10 @@ func (c *defaultWsClient) startHealthCheckUnsafe(ctx context.Context) {
 	go func() {
 		for range ticker.C {
 			_ = c.sendMessage(ctx, &model.WebSocketMessage{
-				Content: &model.WebSocketMessage_PingPong{
-					PingPong: getCurrentTimestamp(),
+				Content: &model.WebSocketMessage_PingPong_{
+					PingPong: &model.WebSocketMessage_PingPong{
+						Timestamp: getCurrentTimestamp(),
+					},
 				},
 			})
 		}
@@ -442,11 +488,36 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 		}
 
 		switch content := message.Content.(type) {
-		case *model.WebSocketMessage_PingPong:
+		case *model.WebSocketMessage_PingPong_:
 			{
-				setServerTimeBase(content.PingPong)
+				setServerTimeBase(content.PingPong.Timestamp)
 			}
-		case *model.WebSocketMessage_Event:
+		case *model.WebSocketMessage_Event_:
+			{
+				header := content.Event.EventHeader
+				v, ok := c.eventHandlerMap.Load(header.EventType)
+				if !ok {
+					_, loaded := c.eventUnsupportType.LoadOrStore(header.EventType, true)
+					if !loaded {
+						c.config.Logger.Warnf(ctx, "Unhandled event type %s", header.EventType)
+					}
+				} else {
+					set := v.(*defaultWsEventHandlerSet)
+					set.mu.RLock()
+					handlers := set.handlers
+					set.mu.RUnlock()
+					for _, handler := range handlers {
+						err = handler(ctx, &EventHeader{
+							EventId:        header.EventId,
+							EventType:      header.EventType,
+							EventCreatedAt: header.EventCreatedAt,
+						}, content.Event.EventBody)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
 		case *model.WebSocketMessage_HttpResponse:
 			{
 				resp := content.HttpResponse

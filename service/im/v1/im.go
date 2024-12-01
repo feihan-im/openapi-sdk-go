@@ -8,6 +8,6 @@ type V1 struct {
 
 func New(config *fhcore.Config) *V1 {
 	return &V1{
-		Message: &v1Message{config: config},
+		Message: &v1Message{config: config, Event: &v1MessageEvent{config: config}},
 	}
 }
