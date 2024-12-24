@@ -38,9 +38,13 @@ func NewClient(backendUrl string, appId string, appSecret string, options ...cli
 		HttpClient:       option.httpClient,
 		EnableEncryption: option.enableEncryption,
 		RequestTimeout:   option.requestTimeout,
+		TimeManager:      option.timeManager,
 		Logger:           option.logger,
 		JsonMarshal:      option.jsonMarshaller,
 		JsonUnmarshal:    option.jsonUnmarshaller,
+	}
+	if config.TimeManager == nil {
+		config.TimeManager = fhcore.NewDefaultTimeManager()
 	}
 	if config.Logger == nil {
 		config.Logger = fhcore.NewDefaultLogger(option.logLevel)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/feihan-im/openapi-sdk-go/internal/model"
@@ -26,6 +27,7 @@ type defaultWsClient struct {
 	secret             string
 	getToken           func(ctx context.Context) (string, error)
 	ensurePing         func(ctx context.Context) error
+	cryptoManager      *defaultCryptoManager
 	initOnce           sync.Once
 	eventHandlerMap    sync.Map
 	eventUnsupportType sync.Map
@@ -42,7 +44,7 @@ type defaultWsClient struct {
 	shouldClose    bool
 	mu             sync.Mutex
 
-	reqCount       int
+	reqCount       uint64
 	reqCallbacks   map[string]*defaultWsReqCallbacks
 	reqCallbacksMu sync.Mutex
 
@@ -63,18 +65,20 @@ type defaultWsEventHandlerSet struct {
 }
 
 type defaultWsClientOptions struct {
-	config     *Config
-	secret     string
-	getToken   func(ctx context.Context) (string, error)
-	ensurePing func(ctx context.Context) error
+	config        *Config
+	secret        string
+	getToken      func(ctx context.Context) (string, error)
+	ensurePing    func(ctx context.Context) error
+	cryptoManager *defaultCryptoManager
 }
 
 func newDefaultWsClient(options *defaultWsClientOptions) *defaultWsClient {
 	return &defaultWsClient{
-		config:     options.config,
-		secret:     options.secret,
-		getToken:   options.getToken,
-		ensurePing: options.ensurePing,
+		config:        options.config,
+		secret:        options.secret,
+		getToken:      options.getToken,
+		ensurePing:    options.ensurePing,
+		cryptoManager: options.cryptoManager,
 
 		reconnectCheckInterval: 10 * time.Second,
 		healthCheckInterval:    20 * time.Second,
@@ -142,6 +146,7 @@ func (c *defaultWsClient) HttpRequest(ctx context.Context, req *model.HttpReques
 		close(respCh)
 	})
 
+	c.config.Logger.Warnf(ctx, "httpPath: %s, reqId: %s", req.Path, req.ReqId)
 	err := c.sendMessage(ctx, &model.WebSocketMessage{
 		Content: &model.WebSocketMessage_HttpRequest{
 			HttpRequest: req,
@@ -235,7 +240,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 				},
 			},
 		})
-		secureMessage, err := encryptMessage(c.secret, body)
+		secureMessage, err := c.cryptoManager.encryptMessage(c.secret, body)
 		if err != nil {
 			return err
 		}
@@ -252,14 +257,14 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		c.lastMessageAt = getSystemTimestamp()
+		c.lastMessageAt = c.config.TimeManager.GetSystemTimestamp()
 
 		var secureMessage model.SecureMessage
 		err = proto.Unmarshal(data, &secureMessage)
 		if err != nil {
 			return err
 		}
-		body, err := decryptMessage(c.secret, &secureMessage)
+		body, err := c.cryptoManager.decryptMessage(c.secret, &secureMessage)
 		if err != nil {
 			return err
 		}
@@ -282,7 +287,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 	go c.handleMessage(ctx, socket)
 
 	c.isConnecting = false
-	c.lastMessageAt = getSystemTimestamp()
+	c.lastMessageAt = c.config.TimeManager.GetSystemTimestamp()
 	c.startHealthCheckUnsafe(ctx)
 	c.startReconnectCheckUnsafe(ctx)
 	if c.shouldClose {
@@ -405,7 +410,7 @@ func (c *defaultWsClient) startHealthCheckUnsafe(ctx context.Context) {
 			_ = c.sendMessage(ctx, &model.WebSocketMessage{
 				Content: &model.WebSocketMessage_Ping_{
 					Ping: &model.WebSocketMessage_Ping{
-						Timestamp: getCurrentTimestamp(),
+						Timestamp: uint64(c.config.TimeManager.GetServerTimestamp()),
 					},
 				},
 			})
@@ -423,7 +428,7 @@ func (c *defaultWsClient) startReconnectCheckUnsafe(ctx context.Context) {
 		for range ticker.C {
 			c.mu.Lock()
 			if c.lastMessageAt != 0 {
-				duration := getSystemTimestamp() - c.lastMessageAt
+				duration := c.config.TimeManager.GetSystemTimestamp() - c.lastMessageAt
 				if duration > (c.aliveTimeout.Nanoseconds() / 1000000) {
 					c.reconnectUnsafe(ctx, false)
 				}
@@ -448,7 +453,7 @@ func (c *defaultWsClient) sendMessage(ctx context.Context, message *model.WebSoc
 	c.ensurePing(ctx)
 
 	body, _ := proto.Marshal(message)
-	secureMessage, err := encryptMessage(c.secret, body)
+	secureMessage, err := c.cryptoManager.encryptMessage(c.secret, body)
 	if err != nil {
 		return err
 	}
@@ -458,7 +463,7 @@ func (c *defaultWsClient) sendMessage(ctx context.Context, message *model.WebSoc
 	defer c.mu.Unlock()
 
 	if c.isConnecting || c.isReconnecting || c.socket == nil {
-		return errors.New("empty ws client")
+		return errors.New("websocket client is not initialized")
 	}
 	_ = c.socket.SetWriteDeadline(time.Now().Add(c.writeTimeout))
 	if err := c.socket.WriteMessage(websocket.BinaryMessage, data); err != nil {
@@ -476,7 +481,7 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 			return err
 		}
 
-		body, err := decryptMessage(c.secret, &secureMessage)
+		body, err := c.cryptoManager.decryptMessage(c.secret, &secureMessage)
 		if err != nil {
 			return err
 		}
@@ -490,7 +495,7 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 		switch content := message.Content.(type) {
 		case *model.WebSocketMessage_Pong_:
 			{
-				setServerTimeBase(content.Pong.Timestamp)
+				c.config.TimeManager.SyncServerTimestamp(int64(content.Pong.Timestamp))
 			}
 		case *model.WebSocketMessage_Event_:
 			{
@@ -544,9 +549,9 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 			c.mu.Lock()
 			if c.socket != socket {
 				c.mu.Unlock()
-				return errors.New("invalid socket")
+				return errors.New("invalid websocket")
 			}
-			c.lastMessageAt = getSystemTimestamp()
+			c.lastMessageAt = c.config.TimeManager.GetSystemTimestamp()
 			c.mu.Unlock()
 
 			go func() {
@@ -562,6 +567,6 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 }
 
 func (c *defaultWsClient) newReqId() string {
-	c.reqCount++
-	return fmt.Sprint(c.reqCount)
+	count := atomic.AddUint64(&c.reqCount, 1)
+	return fmt.Sprint(count)
 }

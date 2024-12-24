@@ -11,8 +11,9 @@ type clientOption struct {
 	requestTimeout   time.Duration
 	enableEncryption bool
 
-	logLevel fhcore.LoggerLevel
-	logger   fhcore.Logger
+	logLevel    fhcore.LoggerLevel
+	logger      fhcore.Logger
+	timeManager fhcore.TimeManager
 
 	jsonMarshaller   fhcore.Marshaller
 	jsonUnmarshaller fhcore.Unmarshaller
@@ -49,6 +50,12 @@ func WithLogLevel(logLevel fhcore.LoggerLevel) clientOptionFunc {
 func WithLogger(logger fhcore.Logger) clientOptionFunc {
 	return func(option *clientOption) {
 		option.logger = logger
+	}
+}
+
+func WithTimeManager(timeManager fhcore.TimeManager) clientOptionFunc {
+	return func(option *clientOption) {
+		option.timeManager = timeManager
 	}
 }
 

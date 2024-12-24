@@ -10,13 +10,27 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/feihan-im/openapi-sdk-go/internal/model"
 )
 
-func encryptMessage(secret string, data []byte) (*model.SecureMessage, error) {
-	timestamp := getCurrentTimestamp()
-	nonce := randomAlphaNumString(16)
+type defaultCryptoManager struct {
+	config  *Config
+	prefix  string
+	counter [5]int
+}
+
+func newDefaultCryptoManager(config *Config) *defaultCryptoManager {
+	return &defaultCryptoManager{
+		prefix: randomAlphanumeric(6),
+		config: config,
+	}
+}
+
+func (m *defaultCryptoManager) encryptMessage(secret string, data []byte) (*model.SecureMessage, error) {
+	timestamp := m.config.TimeManager.GetServerTimestamp()
+	nonce := m.getNonce()
 	initKey := sha256.Sum256([]byte(fmt.Sprintf(
 		"%d:%s:%s",
 		timestamp,
@@ -34,14 +48,14 @@ func encryptMessage(secret string, data []byte) (*model.SecureMessage, error) {
 	}
 	return &model.SecureMessage{
 		Version:       defaultSecureVersion,
-		Timestamp:     timestamp,
+		Timestamp:     uint64(timestamp),
 		Nonce:         nonce,
 		EncryptedKey:  encryptedKey,
 		EncryptedData: encryptedData,
 	}, nil
 }
 
-func decryptMessage(secret string, message *model.SecureMessage) ([]byte, error) {
+func (m *defaultCryptoManager) decryptMessage(secret string, message *model.SecureMessage) ([]byte, error) {
 	switch message.Version {
 	case defaultSecureVersion:
 		{
@@ -63,6 +77,31 @@ func decryptMessage(secret string, message *model.SecureMessage) ([]byte, error)
 		}
 	}
 	return nil, fmt.Errorf("unsupport version %s", message.Version)
+}
+
+func (m *defaultCryptoManager) getNonce() string {
+	ret := m.prefix + randomAlphanumeric(5) + m.formatCounter()
+	m.addCounter()
+	return ret
+}
+
+func (m *defaultCryptoManager) formatCounter() string {
+	ret := strings.Builder{}
+	ret.Grow(5)
+	for i := 4; i >= 0; i-- {
+		ret.WriteByte(alphanumericLetters[m.counter[i]])
+	}
+	return ret.String()
+}
+
+func (m *defaultCryptoManager) addCounter() {
+	for i := 0; i < 5; i++ {
+		if m.counter[i] < 61 {
+			m.counter[i]++
+			return
+		}
+		m.counter[i] = 0
+	}
 }
 
 func encryptAES256CBC(data []byte, key []byte) ([]byte, error) {
@@ -118,7 +157,7 @@ func pkcs7Unpad(b []byte) []byte {
 	return b[:len(b)-n]
 }
 
-const alphaNumLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const alphanumericLetters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func randIntn(n int) int {
 	b := make([]byte, 8)
@@ -132,10 +171,10 @@ func randomBytes(size int) []byte {
 	return b
 }
 
-func randomAlphaNumString(size int) string {
+func randomAlphanumeric(size int) string {
 	b := randomBytes(size)
 	for i := range b {
-		b[i] = alphaNumLetters[int(b[i])%len(alphaNumLetters)]
+		b[i] = alphanumericLetters[int(b[i])%len(alphanumericLetters)]
 	}
 	return string(b)
 }

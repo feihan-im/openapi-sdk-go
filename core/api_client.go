@@ -60,13 +60,14 @@ type defaultApiClient struct {
 	config         *Config
 	secret         string
 	token          string
-	tokenExpiresAt uint64
+	tokenExpiresAt int64
 	tokenFetching  uint64
 	tokenMu        sync.RWMutex
 	pingCalled     bool
 	pingExpiresAt  time.Time
 	pingFetching   uint64
 	pingMu         sync.RWMutex
+	cryptoManager  *defaultCryptoManager
 	ws             *defaultWsClient
 }
 
@@ -81,11 +82,13 @@ func NewDefaultApiClient(config *Config) ApiClient {
 		config: config,
 		secret: secret,
 	}
+	c.cryptoManager = newDefaultCryptoManager(config)
 	c.ws = newDefaultWsClient(&defaultWsClientOptions{
-		config:     config,
-		secret:     secret,
-		getToken:   c.getToken,
-		ensurePing: c.ensurePing,
+		config:        config,
+		secret:        secret,
+		getToken:      c.getToken,
+		ensurePing:    c.ensurePing,
+		cryptoManager: c.cryptoManager,
 	})
 	return c
 }
@@ -210,7 +213,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 			if err != nil {
 				return nil, &ApiError{Code: -1, Msg: err.Error()}
 			}
-			secureMessage, err := encryptMessage(c.secret, httpReqBody)
+			secureMessage, err := c.cryptoManager.encryptMessage(c.secret, httpReqBody)
 			if err != nil {
 				return nil, &ApiError{Code: -1, Msg: err.Error()}
 			}
@@ -251,7 +254,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
-				data, err := decryptMessage(c.secret, &secureMessage)
+				data, err := c.cryptoManager.decryptMessage(c.secret, &secureMessage)
 				if err != nil {
 					return nil, &ApiError{Code: -1, Msg: err.Error()}
 				}
@@ -291,8 +294,8 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		// build header
 		httpReq.Header.Add("Content-Type", "application/json")
 		httpReq.Header.Add("User-Agent", UserAgent)
-		httpReq.Header.Add("X-Feihan-Timestamp", strconv.FormatUint(getCurrentTimestamp(), 10))
-		httpReq.Header.Add("X-Feihan-Nonce", randomAlphaNumString(16))
+		httpReq.Header.Add("X-Feihan-Timestamp", strconv.FormatInt(c.config.TimeManager.GetServerTimestamp(), 10))
+		httpReq.Header.Add("X-Feihan-Nonce", c.cryptoManager.getNonce())
 
 		if req.WithAppAccessToken {
 			token, err := c.getToken(ctx)
@@ -371,7 +374,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 	tokenExpiresAt := c.tokenExpiresAt
 	c.tokenMu.RUnlock()
 
-	if tokenExpiresAt > getCurrentTimestamp() {
+	if tokenExpiresAt > c.config.TimeManager.GetServerTimestamp() {
 		return token, nil
 	}
 
@@ -385,7 +388,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 			}
 			c.token = resp.Data.AppAccessToken
 			c.tokenExpiresAt =
-				getCurrentTimestamp() + uint64(resp.Data.AppAccessTokenExpiresIn*1000) - 5*60*1000
+				c.config.TimeManager.GetServerTimestamp() + int64(resp.Data.AppAccessTokenExpiresIn*1000) - 5*60*1000
 			if lock {
 				c.tokenMu.Unlock()
 			}
@@ -418,7 +421,7 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 }
 
 func (c *defaultApiClient) fetchToken() (*tokenResp, error) {
-	timestamp := getCurrentTimestamp()
+	timestamp := c.config.TimeManager.GetServerTimestamp()
 	nonce := randIntn(1e12)
 
 	s := sha256.New()
@@ -509,7 +512,7 @@ func (c *defaultApiClient) ensurePing(ctx context.Context) error {
 			if lock {
 				c.pingMu.Unlock()
 			}
-			setServerTimeBase(uint64(resp.Data.Timestamp))
+			c.config.TimeManager.SyncServerTimestamp(resp.Data.Timestamp)
 			c.config.Logger.Infof(
 				ctx,
 				"Ping server successfully: org_code=%s, server_version=%s, server_time=%s",

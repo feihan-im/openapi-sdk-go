@@ -11,6 +11,7 @@ type Config struct {
 	ApiClient        ApiClient
 	EnableEncryption bool
 	RequestTimeout   time.Duration
+	TimeManager      TimeManager
 
 	Logger Logger
 
