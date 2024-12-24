@@ -35,9 +35,3 @@ go.work
 
 build/
 output/
-
-*.fhl
-*.log
-*.log.gz
-
-TODO.md
