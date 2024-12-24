@@ -118,7 +118,10 @@ func (c *defaultApiClient) OffEvent(eventType string, handler EventHandler) {
 }
 
 func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiResponse, error) {
-	c.ensurePing(ctx)
+	err := c.ensurePing(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	var url string
 

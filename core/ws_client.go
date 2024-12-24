@@ -89,7 +89,7 @@ func newDefaultWsClient(options *defaultWsClientOptions) *defaultWsClient {
 }
 
 func (c *defaultWsClient) init(ctx context.Context) {
-	c.ensurePing(ctx)
+	_ = c.ensurePing(ctx)
 	_ = c.connect(ctx)
 }
 
@@ -191,7 +191,10 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 	c.lastMessageAt = 0
 	c.clearTimerUnsafe()
 
-	c.ensurePing(ctx)
+	err = c.ensurePing(ctx)
+	if err != nil {
+		return err
+	}
 	token, err := c.getToken(ctx)
 	if err != nil {
 		return err
@@ -292,7 +295,7 @@ func (c *defaultWsClient) connectUnsafe(ctx context.Context) (err error) {
 	c.startReconnectCheckUnsafe(ctx)
 	if c.shouldClose {
 		c.shouldClose = false
-		c.closeUnsafe()
+		_ = c.closeUnsafe()
 	}
 
 	return nil
@@ -450,7 +453,10 @@ func (c *defaultWsClient) clearTimerUnsafe() {
 }
 
 func (c *defaultWsClient) sendMessage(ctx context.Context, message *model.WebSocketMessage) error {
-	c.ensurePing(ctx)
+	err := c.ensurePing(ctx)
+	if err != nil {
+		return err
+	}
 
 	body, _ := proto.Marshal(message)
 	secureMessage, err := c.cryptoManager.encryptMessage(c.secret, body)
