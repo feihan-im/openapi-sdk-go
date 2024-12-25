@@ -2,6 +2,7 @@ package fhcore
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/feihan-im/openapi-sdk-go/internal/model"
@@ -38,11 +40,15 @@ func (m *defaultCryptoManager) encryptMessage(secret string, data []byte) (*mode
 		nonce,
 	)))
 	key := randomBytes(256 / 8)
+	compressedData, err := compressGzip(data)
+	if err != nil {
+		return nil, err
+	}
 	encryptedKey, err := encryptAES256CBC(key, initKey[:])
 	if err != nil {
 		return nil, err
 	}
-	encryptedData, err := encryptAES256CBC(data, key)
+	encryptedData, err := encryptAES256CBC(compressedData, key)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +75,11 @@ func (m *defaultCryptoManager) decryptMessage(secret string, message *model.Secu
 			if err != nil {
 				return nil, err
 			}
-			data, err := decryptAES256CBC(message.EncryptedData, key)
+			compressedData, err := decryptAES256CBC(message.EncryptedData, key)
+			if err != nil {
+				return nil, err
+			}
+			data, err := decompressGzip(compressedData)
 			if err != nil {
 				return nil, err
 			}
@@ -155,6 +165,29 @@ func pkcs7Unpad(b []byte) []byte {
 	c := b[len(b)-1]
 	n := int(c)
 	return b[:len(b)-n]
+}
+
+func compressGzip(data []byte) ([]byte, error) {
+	var b bytes.Buffer
+	w := gzip.NewWriter(&b)
+	_, err := w.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	w.Close()
+	return b.Bytes(), nil
+}
+
+func decompressGzip(data []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 const alphanumericLetters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
