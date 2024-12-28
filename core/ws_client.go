@@ -94,6 +94,9 @@ func (c *defaultWsClient) init(ctx context.Context) {
 }
 
 func (c *defaultWsClient) OnEvent(eventType string, handler EventHandler) {
+	c.initOnce.Do(func() {
+		c.init(context.Background())
+	})
 	v, ok := c.eventHandlerMap.Load(eventType)
 	if !ok {
 		v, _ = c.eventHandlerMap.LoadOrStore(eventType, &defaultWsEventHandlerSet{})
@@ -146,7 +149,6 @@ func (c *defaultWsClient) HttpRequest(ctx context.Context, req *model.HttpReques
 		close(respCh)
 	})
 
-	c.config.Logger.Warnf(ctx, "httpPath: %s, reqId: %s", req.Path, req.ReqId)
 	err := c.sendMessage(ctx, &model.WebSocketMessage{
 		Content: &model.WebSocketMessage_HttpRequest{
 			HttpRequest: req,

@@ -35,6 +35,7 @@ type MessageContent struct {
 }
 
 type MessageText struct {
+	Content *string `json:"content,omitempty"`
 }
 
 type MessageImage struct {
@@ -77,7 +78,7 @@ type MessageDriveCard struct {
 }
 
 type UserId struct {
-	UserId  *string `json:"user_id,omitempty"`
-	UnionId *string `json:"union_id,omitempty"`
-	OpenId  *string `json:"open_id,omitempty"`
+	UserId      *string `json:"user_id,omitempty"`
+	UnionUserId *string `json:"union_user_id,omitempty"`
+	OpenUserId  *string `json:"open_user_id,omitempty"`
 }

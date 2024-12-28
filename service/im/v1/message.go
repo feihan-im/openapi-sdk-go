@@ -12,9 +12,14 @@ type v1Message struct {
 }
 
 type SendMessageReq struct {
+	MessageType    *string         `json:"message_type,omitempty"`
+	MessageContent *MessageContent `json:"message_content,omitempty"`
+	ChatId         *string         `json:"chat_id,omitempty"`
+	ReplyMessageId *string         `json:"reply_message_id,omitempty"`
 }
 
 type SendMessageResp struct {
+	MessageId *string `json:"message_id,omitempty"`
 }
 
 func (v1 *v1Message) SendMessage(ctx context.Context, req *SendMessageReq) (*SendMessageResp, error) {
