@@ -1,20 +1,20 @@
 package fhim
 
 const (
-	MessageTypeText              = "text"
-	MessageTypeImage             = "image"
-	MessageTypeSticker           = "sticker"
-	MessageTypeVideo             = "video"
-	MessageTypeAudio             = "audio"
-	MessageTypeFile              = "file"
-	MessageTypeUserCard          = "user_card"
-	MessageTypeGroupCard         = "group_card"
-	MessageTypeArticleLink       = "article_link"
-	MessageTypeLocation          = "location"
-	MessageTypeVote              = "vote"
-	MessageTypeMergeForward      = "merge_forward"
-	MessageTypeGroupAnnouncement = "group_announcement"
-	MessageTypeDriveCard         = "drive_card"
+	MessageTypeText              string = "text"
+	MessageTypeImage             string = "image"
+	MessageTypeSticker           string = "sticker"
+	MessageTypeVideo             string = "video"
+	MessageTypeAudio             string = "audio"
+	MessageTypeFile              string = "file"
+	MessageTypeUserCard          string = "user_card"
+	MessageTypeGroupCard         string = "group_card"
+	MessageTypeArticleLink       string = "article_link"
+	MessageTypeLocation          string = "location"
+	MessageTypeVote              string = "vote"
+	MessageTypeMergeForward      string = "merge_forward"
+	MessageTypeGroupAnnouncement string = "group_announcement"
+	MessageTypeDriveCard         string = "drive_card"
 )
 
 type MessageContent struct {
