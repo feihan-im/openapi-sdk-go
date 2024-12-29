@@ -1,6 +1,6 @@
 syntax = "proto3";
-package model;
-option go_package = "internal/model";
+package im.feihan.openapi_sdk.model;
+option go_package = "github.com/feihan-im/openapi-sdk-go/internal/model";
 
 message SecureMessage {
     string version = 1;
