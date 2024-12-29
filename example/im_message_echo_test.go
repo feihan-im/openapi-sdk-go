@@ -20,12 +20,18 @@ func TestImMessageSend(t *testing.T) {
 	onMessageReceive := func(ctx context.Context, event *fhim.EventImV1MessageReceive) {
 		b, _ := json.MarshalIndent(event, "", "  ")
 		_, _ = client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{
-			MessageType: fhsdk.String(fhim.MessageTypeText),
+			MessageType: fhsdk.String(fhim.MessageType_Text),
 			MessageContent: &fhim.MessageContent{
 				Text: &fhim.MessageText{
 					Content: fhsdk.String(fmt.Sprintf("Receive an event:\n%s", string(b))),
 				},
 			},
+			ChatId:         event.Body.Message.ChatId,
+			ReplyMessageId: event.Body.Message.MessageId,
+		})
+		_, _ = client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{
+			MessageType:    event.Body.Message.MessageType,
+			MessageContent: event.Body.Message.MessageContent,
 			ChatId:         event.Body.Message.ChatId,
 			ReplyMessageId: event.Body.Message.MessageId,
 		})
