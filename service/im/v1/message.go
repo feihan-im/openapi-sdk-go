@@ -52,7 +52,7 @@ func (v1 *v1Message) RecallMessage(ctx context.Context, req *RecallMessageReq) (
 		Method: "POST",
 		Path:   "/oapi/im/v1/messages/:message_id/recall",
 		PathParams: map[string]string{
-			"message_id": *req.MessageId,
+			"message_id": stringOrEmpty(req.MessageId),
 		},
 		Body:               req,
 		WithAppAccessToken: true,
@@ -80,7 +80,7 @@ func (v1 *v1Message) ReadMessage(ctx context.Context, req *ReadMessageReq) (*Rea
 		Method: "POST",
 		Path:   "/oapi/im/v1/messages/:message_id/read",
 		PathParams: map[string]string{
-			"message_id": *req.MessageId,
+			"message_id": stringOrEmpty(req.MessageId),
 		},
 		Body:               req,
 		WithAppAccessToken: true,

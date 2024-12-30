@@ -11,3 +11,10 @@ func New(config *fhcore.Config) *V1 {
 		Message: &v1Message{config: config, Event: &v1MessageEvent{config: config}},
 	}
 }
+
+func stringOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

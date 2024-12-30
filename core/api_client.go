@@ -140,8 +140,8 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 						return nil, &ApiError{Code: -1, Msg: "PathParams is nil"}
 					}
 					v, ok := req.PathParams[req.Path[i+1:j]]
-					if !ok {
-						return nil, &ApiError{Code: -1, Msg: fmt.Sprintf("PathParams[%s] is not found", req.Path[i+1:j])}
+					if !ok || len(v) == 0 {
+						return nil, &ApiError{Code: -1, Msg: fmt.Sprintf("PathParams[%s] is not found or empty", req.Path[i+1:j])}
 					}
 					urlBuilder.WriteString(v)
 				} else {
