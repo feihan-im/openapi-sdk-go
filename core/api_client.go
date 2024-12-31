@@ -224,7 +224,7 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 		}
 
 		// build request
-		httpReq, err := http.NewRequest(req.Method, c.config.BackendUrl+defaultGatewayPath, bytes.NewBuffer(body))
+		httpReq, err := http.NewRequest("POST", c.config.BackendUrl+defaultGatewayPath, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, &ApiError{Code: -1, Msg: err.Error()}
 		}
