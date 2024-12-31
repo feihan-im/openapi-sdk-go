@@ -2,17 +2,9 @@
 package fhim
 
 import (
-	"sync"
-
 	fhcore "github.com/feihan-im/openapi-sdk-go/core"
 )
 
-type v1Message struct {
+type v1Chat struct {
 	config *fhcore.Config
-	Event  *v1MessageEvent
-}
-
-type v1MessageEvent struct {
-	config     *fhcore.Config
-	handlerMap sync.Map
 }

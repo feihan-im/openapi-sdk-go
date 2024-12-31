@@ -17,13 +17,21 @@ func TestImMessageSend(t *testing.T) {
 		"c-TestAppId2",
 		"TestAppSecret2",
 	)
-	onMessageReceive := func(ctx context.Context, event *fhim.EventImV1MessageReceive) {
+	client.Im.Message.Event.OnMessageReceive(func(ctx context.Context, event *fhim.EventMessageReceive) {
+		_, _ = client.Im.Chat.CreateTyping(ctx, &fhim.CreateTypingReq{
+			ChatId: event.Body.Message.ChatId,
+		})
+		defer func() {
+			_, _ = client.Im.Chat.DeleteTyping(ctx, &fhim.DeleteTypingReq{
+				ChatId: event.Body.Message.ChatId,
+			})
+		}()
 		b, _ := json.MarshalIndent(event, "", "  ")
 		_, _ = client.Im.Message.ReadMessage(ctx, &fhim.ReadMessageReq{
 			MessageId: event.Body.Message.MessageId,
 		})
 		resp, _ := client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{
-			MessageType: fhsdk.String(fhim.MessageType_Text),
+			MessageType: fhsdk.String(fhim.MessageType_TEXT),
 			MessageContent: &fhim.MessageContent{
 				Text: &fhim.MessageText{
 					Content: fhsdk.String(fmt.Sprintf("Receive an event:\n%s", string(b))),
@@ -32,17 +40,16 @@ func TestImMessageSend(t *testing.T) {
 			ChatId:         event.Body.Message.ChatId,
 			ReplyMessageId: event.Body.Message.MessageId,
 		})
+		time.Sleep(2 * time.Second)
 		_, _ = client.Im.Message.SendMessage(ctx, &fhim.SendMessageReq{
 			MessageType:    event.Body.Message.MessageType,
 			MessageContent: event.Body.Message.MessageContent,
 			ChatId:         event.Body.Message.ChatId,
 			ReplyMessageId: event.Body.Message.MessageId,
 		})
-		time.Sleep(2 * time.Second)
 		_, _ = client.Im.Message.RecallMessage(ctx, &fhim.RecallMessageReq{
 			MessageId: resp.MessageId,
 		})
-	}
-	client.Im.Message.Event.OnMessageReceive(onMessageReceive)
+	})
 	time.Sleep(10 * time.Second)
 }
