@@ -60,6 +60,7 @@ type defaultApiClient struct {
 	config         *Config
 	secret         string
 	token          string
+	tokenRefreshAt int64
 	tokenExpiresAt int64
 	tokenFetching  uint64
 	tokenMu        sync.RWMutex
@@ -200,6 +201,16 @@ func (c *defaultApiClient) Request(ctx context.Context, req *ApiRequest) (*ApiRe
 
 			// send by websocket
 			if req.WithWebSocket {
+				if httpReq.Headers == nil {
+					httpReq.Headers = map[string]string{}
+				}
+				if len(httpReq.Headers["Authorization"]) == 0 {
+					token, err := c.getToken(ctx)
+					if err != nil {
+						return nil, err
+					}
+					httpReq.Headers["Authorization"] = "Bearer " + token
+				}
 				httpResp, err := c.ws.HttpRequest(ctx, httpReq)
 				if err != nil {
 					return nil, err
@@ -375,9 +386,11 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 	c.tokenMu.RLock()
 	token := c.token
 	tokenExpiresAt := c.tokenExpiresAt
+	tokenRefreshAt := c.tokenRefreshAt
 	c.tokenMu.RUnlock()
 
-	if tokenExpiresAt > c.config.TimeManager.GetServerTimestamp() {
+	timestamp := c.config.TimeManager.GetServerTimestamp()
+	if tokenRefreshAt > timestamp {
 		return token, nil
 	}
 
@@ -391,7 +404,8 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 			}
 			c.token = resp.Data.AppAccessToken
 			c.tokenExpiresAt =
-				c.config.TimeManager.GetServerTimestamp() + int64(resp.Data.AppAccessTokenExpiresIn*1000) - 5*60*1000
+				c.config.TimeManager.GetServerTimestamp() + int64(resp.Data.AppAccessTokenExpiresIn*1000) - 60*1000
+			c.tokenRefreshAt = c.tokenExpiresAt - 5*60*1000
 			if lock {
 				c.tokenMu.Unlock()
 			}
@@ -399,10 +413,10 @@ func (c *defaultApiClient) getToken(ctx context.Context) (string, error) {
 		}
 	}
 
-	if len(token) == 0 {
+	if len(token) == 0 || tokenExpiresAt <= timestamp {
 		c.tokenMu.Lock()
 		token = c.token
-		if len(token) == 0 {
+		if len(token) == 0 || c.tokenExpiresAt <= c.config.TimeManager.GetServerTimestamp() {
 			callFetchToken(false)
 		}
 		token = c.token
