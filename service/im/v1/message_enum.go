@@ -12,6 +12,7 @@ const (
 	MessageType_USER_CARD          string = "user_card"          // 个人名片消息
 	MessageType_GROUP_CARD         string = "group_card"         // 群名片消息
 	MessageType_GROUP_ANNOUNCEMENT string = "group_announcement" // 群公告
+	MessageType_CARD               string = "card"               // 卡片消息
 )
 
 // 附件类型

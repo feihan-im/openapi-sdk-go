@@ -12,6 +12,7 @@ type MessageContent struct {
 	UserCard          *MessageUserCard          `json:"user_card,omitempty"`          // 个人名片消息
 	GroupCard         *MessageGroupCard         `json:"group_card,omitempty"`         // 群名片消息
 	GroupAnnouncement *MessageGroupAnnouncement `json:"group_announcement,omitempty"` // 群公告
+	Card              *MessageCard              `json:"card,omitempty"`               // 卡片消息
 }
 
 // 文本消息
@@ -144,6 +145,54 @@ type MessageGroupCard struct {
 // 群公告
 type MessageGroupAnnouncement struct {
 	MessageText *MessageText `json:"message_text,omitempty"` // 公告内容
+}
+
+// 卡片消息
+type MessageCard struct {
+	Schema *string        `json:"schema,omitempty"` // 卡片版本
+	V1     *MessageCardV1 `json:"v1,omitempty"`     // v1 版本
+}
+
+// v1 版本
+type MessageCardV1 struct {
+	Header *MessageCardV1Header `json:"header,omitempty"` // 卡片标题
+	Body   *MessageCardV1Body   `json:"body,omitempty"`   // 卡片正文
+	Footer *MessageCardV1Footer `json:"footer,omitempty"` // 卡片底部
+}
+
+// 卡片标题
+type MessageCardV1Header struct {
+	Title     *string           `json:"title,omitempty"`      // 标题文本
+	TitleI18n map[string]string `json:"title_i18n,omitempty"` // 标题文本国际化
+	Template  *string           `json:"template,omitempty"`   // 标题颜色模板
+}
+
+// 卡片正文
+type MessageCardV1Body struct {
+	MessageText     *MessageText            `json:"message_text,omitempty"`      // 卡片正文文本消息
+	MessageTextI18n map[string]*MessageText `json:"message_text_i18n,omitempty"` // 卡片正文文本消息国际化
+}
+
+// 卡片底部
+type MessageCardV1Footer struct {
+	ButtonList  []*MessageCardV1Button `json:"button_list,omitempty"`  // 按钮列表
+	ButtonAlign *string                `json:"button_align,omitempty"` // 按钮排版
+}
+
+// 卡片按钮
+type MessageCardV1Button struct {
+	ButtonText     *string                  `json:"button_text,omitempty"`      // 按钮文本
+	ButtonTextI18n map[string]string        `json:"button_text_i18n,omitempty"` // 按钮文本国际化
+	Template       *string                  `json:"template,omitempty"`         // 按钮样式模板，取值 default, primary, danger, primary_text, danger_text, primary_filled, danger_filled
+	Link           *MessageCardV1ButtonLink `json:"link,omitempty"`             // 按钮跳转链接
+}
+
+// 跳转链接
+type MessageCardV1ButtonLink struct {
+	Url        *string `json:"url,omitempty"`         // 默认链接地址
+	AndroidUrl *string `json:"android_url,omitempty"` // 安卓链接地址
+	IosUrl     *string `json:"ios_url,omitempty"`     // ios 链接地址
+	PcUrl      *string `json:"pc_url,omitempty"`      // 桌面端链接地址
 }
 
 // 消息
