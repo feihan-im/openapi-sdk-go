@@ -2038,10 +2038,7 @@ func (m *SecureMessage) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -2266,7 +2263,7 @@ func (m *HttpRequest) Unmarshal(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					if skippy < 0 {
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
 						return ErrInvalidLengthTransport
 					}
 					if (iNdEx + skippy) > postIndex {
@@ -2349,10 +2346,7 @@ func (m *HttpRequest) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -2564,7 +2558,7 @@ func (m *HttpResponse) Unmarshal(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					if skippy < 0 {
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
 						return ErrInvalidLengthTransport
 					}
 					if (iNdEx + skippy) > postIndex {
@@ -2647,10 +2641,7 @@ func (m *HttpResponse) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -2981,10 +2972,7 @@ func (m *WebSocketMessage) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3054,10 +3042,7 @@ func (m *WebSocketMessage_Ping) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3127,10 +3112,7 @@ func (m *WebSocketMessage_Pong) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3213,10 +3195,7 @@ func (m *WebSocketMessage_InitRequest) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3267,10 +3246,7 @@ func (m *WebSocketMessage_InitResponse) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3391,10 +3367,7 @@ func (m *WebSocketMessage_Event) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3528,10 +3501,7 @@ func (m *WebSocketMessage_EventHeader) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
@@ -3614,10 +3584,7 @@ func (m *WebSocketMessage_EventAck) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthTransport
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthTransport
 			}
 			if (iNdEx + skippy) > l {
