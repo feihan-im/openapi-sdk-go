@@ -1,27 +1,27 @@
-# 飞函 IM OpenAPI SDK
+# Feihan IM OpenAPI SDK
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/feihan-im/openapi-sdk-go.svg)](https://pkg.go.dev/github.com/feihan-im/openapi-sdk-go)
 [![Go](https://github.com/feihan-im/openapi-sdk-go/actions/workflows/go.yaml/badge.svg)](https://github.com/feihan-im/openapi-sdk-go/actions/workflows/go.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/feihan-im/openapi-sdk-go)](https://goreportcard.com/report/github.com/feihan-im/openapi-sdk-go)
 [![License](https://img.shields.io/github/license/feihan-im/openapi-sdk-go)](LICENSE)
 
-[English](README_en.md) | 中文
+English | [中文](README_zh.md)
 
-飞函，是安全稳定的私有化一站式办公平台，功能包括即时通讯、组织架构、音视频会议、网盘等。
+Feihan is a secure, self-hosted productivity platform, integrating instant messaging, organizational structures, video conferencing, and file storage.
 
-本项目是飞函服务端的 Go SDK，用于通过 OpenAPI 与飞函服务端进行交互。使用前需要先自行部署飞函服务端，部署教程请参考[快速部署文档](https://feihanim.cn/docs/admin/install/quick-install)。
+This is the official Go SDK for Feihan server, used to interact with the Feihan server via OpenAPI. You need to deploy the Feihan server before using this SDK. See the [Quick Deploy Guide](https://feihanim.cn/docs/admin/install/quick-install) for setup instructions.
 
-## 环境要求
+## Requirements
 
-- Go 1.12 及以上版本
+- Go 1.12 or later
 
-## 安装
+## Installation
 
 ```bash
 go get github.com/feihan-im/openapi-sdk-go
 ```
 
-## 快速开始
+## Quick Start
 
 ```go
 package main
@@ -38,37 +38,38 @@ func main() {
     client := fhsdk.NewClient("http://localhost:11000", "your-app-id", "your-app-secret")
     defer client.Close()
 
-    // 可选：预热可提前获取访问凭证和同步服务端时间，减少首次调用的延迟
+    // Optional: preheat fetches access token and syncs server time upfront,
+    // reducing latency on the first API call
     _ = client.Preheat(context.Background())
 
-    // 调用 API
+    // Call API
     _, err := client.Im.Chat.CreateTyping(context.Background(), &fhim.CreateTypingReq{})
     fmt.Println(err)
 }
 ```
 
-## 认证方式
+## Authentication
 
-本 SDK 使用应用级别认证。创建客户端时传入 App ID 和 App Secret，SDK 会自动管理访问凭证的获取与刷新。
+This SDK uses app-level authentication. Pass your App ID and App Secret when creating the client. The SDK automatically manages access token retrieval and refresh.
 
-## 运行示例
+## Examples
 
-运行全部测试：
+Run all tests:
 
 ```bash
 go test ./...
 ```
 
-仅运行 IM 消息示例：
+Run the IM message example only:
 
 ```bash
 go test ./example -run TestImMessageSend
 ```
 
-## 相关链接
+## Links
 
-- [官网](https://feihanim.cn/)
+- [Website](https://feihanim.cn/)
 
-## 许可证
+## License
 
 [Apache-2.0 License](LICENSE)
