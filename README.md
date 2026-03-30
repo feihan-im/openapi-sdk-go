@@ -1,6 +1,7 @@
 # 飞函 IM OpenAPI SDK - Golang
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/feihan-im/openapi-sdk-go.svg)](https://pkg.go.dev/github.com/feihan-im/openapi-sdk-go)
+[![Go Version](https://img.shields.io/github/v/tag/feihan-im/openapi-sdk-go)](https://github.com/feihan-im/openapi-sdk-go/tags)
 [![Go](https://github.com/feihan-im/openapi-sdk-go/actions/workflows/go.yaml/badge.svg)](https://github.com/feihan-im/openapi-sdk-go/actions/workflows/go.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/feihan-im/openapi-sdk-go)](https://goreportcard.com/report/github.com/feihan-im/openapi-sdk-go)
 [![License](https://img.shields.io/github/license/feihan-im/openapi-sdk-go)](LICENSE)
