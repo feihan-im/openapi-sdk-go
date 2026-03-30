@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/feihan-im/openapi-sdk-go)](https://goreportcard.com/report/github.com/feihan-im/openapi-sdk-go)
 [![License](https://img.shields.io/github/license/feihan-im/openapi-sdk-go)](LICENSE)
 
-English | [中文](README_zh.md)
+English | [中文](README.md)
 
 Feihan is a secure, self-hosted productivity platform, integrating instant messaging, organizational structures, video conferencing, and file storage.
 
