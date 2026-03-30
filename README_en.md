@@ -68,7 +68,7 @@ client := fhsdk.NewClient(
     "https://your-backend-url.com",
     "your-app-id",
     "your-app-secret",
-    fhsdk.WithLogLevel(fhcore.LoggerLevelDebug), // Log level (default: Info)
+    fhsdk.WithLogLevel(fhcore.LoggerLevelDebug),            // Log level (default: Info)
     fhsdk.WithRequestTimeout(30 * time.Second),             // Request timeout (default: 60s)
     fhsdk.WithEnableEncryption(false),                      // Enable request encryption (default: true)
 )
