@@ -39,24 +39,24 @@ type defaultLogger struct {
 
 func (l defaultLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
 	if l.level <= LoggerLevelDebug {
-		l.logger.Printf("[fhsdk] DEBUG "+format, args...)
+		l.logger.Printf("[Feihan] DEBUG "+format, args...)
 	}
 }
 
 func (l defaultLogger) Infof(ctx context.Context, format string, args ...interface{}) {
 	if l.level <= LoggerLevelInfo {
-		l.logger.Printf("[fhsdk] INFO "+format, args...)
+		l.logger.Printf("[Feihan] INFO "+format, args...)
 	}
 }
 
 func (l defaultLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
 	if l.level <= LoggerLevelWarn {
-		l.logger.Printf("[fhsdk] WARN "+format, args...)
+		l.logger.Printf("[Feihan] WARN "+format, args...)
 	}
 }
 
 func (l defaultLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
 	if l.level <= LoggerLevelError {
-		l.logger.Printf("[fhsdk] ERROR "+format, args...)
+		l.logger.Printf("[Feihan] ERROR "+format, args...)
 	}
 }
