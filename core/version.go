@@ -4,7 +4,7 @@
 package fhcore
 
 // SDK version
-const Version = "0.28.103"
+const Version = "0.28.104"
 
 // User-Agent
 const UserAgent = "feihan-openapi-sdk-go/" + Version
