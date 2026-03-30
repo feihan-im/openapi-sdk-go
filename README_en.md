@@ -42,7 +42,7 @@ func main() {
     // Call API
     resp, err := client.Im.Message.SendMessage(context.Background(), &fhim.SendMessageReq{
         ChatId:      fhsdk.String("chat-id"),
-        MessageType: fhsdk.String("text"),
+        MessageType: fhsdk.String(fhim.MessageType_TEXT),
         MessageContent: &fhim.MessageContent{
             Text: &fhim.MessageText{
                 Content: fhsdk.String("Feihan new version released!"),
