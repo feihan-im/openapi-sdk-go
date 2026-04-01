@@ -523,16 +523,23 @@ func (c *defaultWsClient) handleMessage(ctx context.Context, socket *websocket.C
 					handlers := set.handlers
 					set.mu.RUnlock()
 					for _, handler := range handlers {
-						err = handler(ctx, &EventHeader{
+						if e := handler(ctx, &EventHeader{
 							EventId:        header.EventId,
 							EventType:      header.EventType,
 							EventCreatedAt: header.EventCreatedAt,
-						}, content.Event.EventBody)
-						if err != nil {
-							return err
+						}, content.Event.EventBody); e != nil {
+							c.config.Logger.Errorf(ctx, "[WebSocket] event handler error: %v", e)
 						}
 					}
 				}
+				// Send event ack
+				_ = c.sendMessage(ctx, &model.WebSocketMessage{
+					Content: &model.WebSocketMessage_EventAck_{
+						EventAck: &model.WebSocketMessage_EventAck{
+							EventId: header.EventId,
+						},
+					},
+				})
 			}
 		case *model.WebSocketMessage_HttpResponse:
 			{

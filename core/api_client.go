@@ -555,7 +555,7 @@ func (c *defaultApiClient) ensurePing(ctx context.Context) error {
 		if atomic.CompareAndSwapUint64(&c.pingFetching, 0, 1) {
 			go func() {
 				callFetchPing(true)
-				atomic.StoreUint64(&c.tokenFetching, 0)
+				atomic.StoreUint64(&c.pingFetching, 0)
 			}()
 		}
 	}
