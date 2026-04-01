@@ -68,7 +68,7 @@ client := fhsdk.NewClient(
     "https://your-backend-url.com",
     "your-app-id",
     "your-app-secret",
-    fhsdk.WithLogLevel(fhcore.LoggerLevelDebug), // 日志级别（默认: Info）
+    fhsdk.WithLogLevel(fhcore.LoggerLevelDebug),            // 日志级别（默认: Info）
     fhsdk.WithRequestTimeout(30 * time.Second),             // 请求超时（默认: 60s）
     fhsdk.WithEnableEncryption(false),                      // 启用请求加密（默认: true）
 )
